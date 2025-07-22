@@ -3,7 +3,7 @@ from models import Contract, Client
 from connection import engine
 from auth import get_current_user
 from auth_utils import require_role
-
+import datetime
 session = sessionmaker(bind=engine)()
 
 @require_role("commercial", "gestion")
@@ -44,8 +44,10 @@ def update_contract():
     signed_input = input("Contrat signé ? (oui/non) : ").strip().lower()
     if signed_input in ["oui", "yes"]:
         contract.signed = True
+        contract.signed_date = datetime.datetime.now()
     elif signed_input in ["non", "no"]:
         contract.signed = False
+        contract.date_signed = None
 
     session.commit()
     print("Contrat mis à jour.")
