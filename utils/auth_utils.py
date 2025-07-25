@@ -1,4 +1,4 @@
-from auth import get_current_user
+from utils.auth import get_current_user
 
 def require_role(*allowed_roles):
     def decorator(func):

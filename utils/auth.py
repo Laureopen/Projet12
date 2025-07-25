@@ -3,14 +3,14 @@ import getpass
 import jwt
 import os
 from sqlalchemy.orm import sessionmaker
-from models import User
-from connection import engine  # à créer dans connexion.py
+from models.models import User
+from utils.connection import engine  # à créer dans connexion.py
 from datetime import datetime, timedelta
 
 # Clé secrète pour le JWT (à stocker en variable d'env !)
 SECRET_KEY = os.getenv("EPIC_SECRET_KEY", "change_me")
 ALGORITHM = "HS256"
-TOKEN_FILE = ".epic_token"
+TOKEN_FILE = "../.epic_token"
 
 Session = sessionmaker(bind=engine)
 session = Session()
