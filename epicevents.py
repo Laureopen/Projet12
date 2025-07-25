@@ -1,8 +1,8 @@
 import click
-from auth import login, create_user
-from client_controller import create_client, list_clients, update_client
-from contract_controller import create_contract, update_contract, list_contracts, list_unsigned_contracts
-from event_controller import (
+from utils.auth import login, create_user
+from controllers.client_controller import create_client, list_clients, update_client
+from controllers.contract_controller import create_contract, update_contract, list_contracts, list_unsigned_contracts
+from controllers.event_controller import (
     create_event,
     assign_support,
     update_my_event,
@@ -53,11 +53,13 @@ def update_client_cmd():
 def contract():
     """Gestion des contrats"""
     pass
-
 @contract.command("create")
-def create_contract_cmd():
+@click.option('--client-id', prompt="ID du client", type=int)
+@click.option('--amount-total', prompt="Montant total", type=float)
+@click.option('--amount-remaining', prompt="Montant restant", type=float)
+def create_contract_cmd(client_id, amount_total, amount_remaining):
     """Créer un contrat"""
-    create_contract()
+    create_contract(client_id, amount_total, amount_remaining)
 
 @contract.command("update")
 def update_contract_cmd():
