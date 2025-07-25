@@ -1,21 +1,20 @@
 import click
 from sqlalchemy.orm import sessionmaker
-from models import Client
-from connection import engine
-from auth import get_current_user
-from auth_utils import require_role
+from models.models import Client
+from utils.connection import engine
+from utils.auth import get_current_user
+from utils.auth_utils import require_role
 
 session = sessionmaker(bind=engine)()
 
+@click.command()
+@click.option('--name', prompt="Nom du client")
+@click.option('--email', prompt="Email")
+@click.option('--phone', prompt="Téléphone")
+@click.option('--company', prompt="Entreprise")
 @require_role("commercial")
 def create_client():
     user = get_current_user()
-
-    name = input("Nom du client : ")
-    email = input("Email : ")
-    phone = input("Téléphone : ")
-    company = input("Entreprise : ")
-
     client = Client(
         name=name,
         email=email,

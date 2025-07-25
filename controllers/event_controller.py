@@ -1,8 +1,8 @@
 from sqlalchemy.orm import sessionmaker
-from models import Event, Contract, User
-from connection import engine
-from auth import get_current_user
-from auth_utils import require_role
+from models.models import Event, Contract, User
+from utils.connection import engine
+from utils.auth import get_current_user
+from utils.auth_utils import require_role
 from datetime import datetime
 
 session = sessionmaker(bind=engine)()
