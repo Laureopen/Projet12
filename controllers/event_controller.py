@@ -1,120 +1,142 @@
+import click
+from datetime import datetime
 from sqlalchemy.orm import sessionmaker
 from models.models import Event, Contract, User
 from utils.connection import engine
 from utils.auth import get_current_user
 from utils.auth_utils import require_role
-from datetime import datetime
 
 session = sessionmaker(bind=engine)()
 
+@click.command()
+@click.option('--contract-id', prompt="ID du contrat")
+@click.option('--name', prompt="Nom de l'événement")
+@click.option('--date', prompt="Date et heure (format YYYY-MM-DD HH:MM)")
+@click.option('--location', prompt="Lieu")
+@click.option('--attendees', prompt="Nombre de participants", type=int)
+@click.option('--notes', prompt="Notes")
 @require_role("commercial")
-def create_event():
+def create_event(contract_id, name, date, location, attendees, notes):
     user = get_current_user()
-    contract_id = input("ID du contrat : ")
-
     contract = session.query(Contract).filter_by(id=contract_id).first()
 
     if not contract:
-        print("Contrat introuvable.")
+        click.echo("Contrat introuvable.")
         return
 
     if not contract.signed:
-        print("Le contrat n’est pas signé. Impossible de créer un événement.")
+        click.echo("Le contrat n’est pas signé. Impossible de créer un événement.")
         return
 
     if contract.sales_contact_id != user.id:
-        print("Vous ne pouvez créer un événement que pour vos propres contrats.")
+        click.echo("Vous ne pouvez créer un événement que pour vos propres contrats.")
         return
 
-    name = input("Nom de l'événement : ")
-    date_str = input("Date et heure (format YYYY-MM-DD HH:MM) : ")
-    location = input("Lieu : ")
-    attendees = int(input("Nombre de participants : "))
-    notes = input("Notes : ")
-
     try:
-        date = datetime.strptime(date_str, "%Y-%m-%d %H:%M")
+        date_obj = datetime.strptime(date, "%Y-%m-%d %H:%M")
     except ValueError:
-        print("Format de date invalide.")
+        click.echo("Format de date invalide.")
         return
 
     event = Event(
         name=name,
         contract_id=contract.id,
-        date=date,
+        date=date_obj,
         location=location,
         attendees=attendees,
         notes=notes
     )
     session.add(event)
     session.commit()
-    print("Événement créé avec succès.")
+    click.echo("Événement créé avec succès.")
 
+@click.command()
+@click.option('--event-id', prompt="ID de l'événement")
+@click.option('--support-email', prompt="Email du support à assigner")
 @require_role("gestion")
-def assign_support():
-    event_id = input("ID de l'événement : ")
-    support_email = input("Email du support à assigner : ")
-
+def assign_support(event_id, support_email):
     event = session.query(Event).filter_by(id=event_id).first()
     if not event:
-        print("Événement introuvable.")
+        click.echo("Événement introuvable.")
         return
 
     support_user = session.query(User).filter_by(email=support_email, department="support").first()
     if not support_user:
-        print("Utilisateur support introuvable.")
+        click.echo("Utilisateur support introuvable.")
         return
 
     event.support_contact_id = support_user.id
     session.commit()
-    print(f"Support {support_user.name} assigné à l’événement.")
+    click.echo(f"Support {support_user.name} assigné à l’événement.")
 
+@click.command()
+@click.option('--event-id', prompt="ID de l’événement")
+@click.option('--new-date', default=None, help="Nouvelle date (YYYY-MM-DD HH:MM)")
+@click.option('--location', default=None, help="Nouveau lieu")
+@click.option('--attendees', default=None, type=int, help="Nouveau nombre de participants")
+@click.option('--notes', default=None, help="Nouvelles notes")
 @require_role("support")
-def update_my_event():
+def update_my_event(event_id, new_date, location, attendees, notes):
     user = get_current_user()
-    event_id = input("ID de l’événement : ")
-
     event = session.query(Event).filter_by(id=event_id, support_contact_id=user.id).first()
+
     if not event:
-        print("Événement non trouvé ou non assigné à vous.")
+        click.echo("Événement non trouvé ou non assigné à vous.")
         return
 
-    new_date = input(f"Nouvelle date [{event.date}] (YYYY-MM-DD HH:MM) : ") or event.date
-    location = input(f"Nouveau lieu [{event.location}] : ") or event.location
-    attendees = input(f"Nouveau nombre de participants [{event.attendees}] : ") or event.attendees
-    notes = input(f"Nouvelles notes : ") or event.notes
-
     try:
-        if isinstance(new_date, str):
-            event.date = datetime.strptime(new_date, "%Y-%m-%d %H:%M")
-        else:
-            event.date = new_date
-        event.location = location
-        event.attendees = int(attendees)
-        event.notes = notes
+        event.date = datetime.strptime(new_date, "%Y-%m-%d %H:%M") if new_date else event.date
+        event.location = location or event.location
+        event.attendees = attendees if attendees is not None else event.attendees
+        event.notes = notes or event.notes
         session.commit()
-        print("Événement mis à jour.")
+        click.echo("Événement mis à jour.")
     except Exception as e:
-        print("Erreur lors de la mise à jour :", e)
+        click.echo("Erreur lors de la mise à jour :", e)
 
+
+@click.command()
 @require_role("commercial", "gestion", "support")
 def list_events():
+    """Lister tous les événements"""
     events = session.query(Event).all()
-    print("Liste des événements :")
-    for e in events:
-        print(f"[{e.id}] {e.name} - {e.date} - Lieu : {e.location} - Participants : {e.attendees}")
+    if not events:
+        click.echo("Aucun événement trouvé.")
+        return
+    for event in events:
+        click.echo(
+            f"ID: {event.id}, Nom: {event.name}, Date: {event.date}, "
+            f"Lieu: {event.location}, Participants: {event.attendees}, "
+            f"Support assigné: {event.support_contact_id}"
+        )
 
+
+@click.command()
 @require_role("gestion")
 def list_unassigned_events():
+    """Lister les événements sans support assigné"""
     events = session.query(Event).filter_by(support_contact_id=None).all()
-    print("Événements sans support assigné :")
-    for e in events:
-        print(f"[{e.id}] {e.name} - Contrat #{e.contract_id} - {e.date} - {e.location}")
+    if not events:
+        click.echo("Aucun événement non assigné trouvé.")
+        return
+    for event in events:
+        click.echo(
+            f"ID: {event.id}, Nom: {event.name}, Date: {event.date}, "
+            f"Lieu: {event.location}, Participants: {event.attendees}"
+        )
 
+
+@click.command()
 @require_role("support")
 def list_my_events():
+    """Lister les événements assignés au support connecté"""
     user = get_current_user()
     events = session.query(Event).filter_by(support_contact_id=user.id).all()
-    print("Vos événements assignés :")
-    for e in events:
-        print(f"[{e.id}] {e.name} - {e.date} - {e.location} - Participants : {e.attendees}")
+    if not events:
+        click.echo("Vous n’avez aucun événement assigné.")
+        return
+    for event in events:
+        click.echo(
+            f"ID: {event.id}, Nom: {event.name}, Date: {event.date}, "
+            f"Lieu: {event.location}, Participants: {event.attendees}"
+        )

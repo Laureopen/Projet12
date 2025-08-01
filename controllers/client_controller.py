@@ -13,7 +13,7 @@ session = sessionmaker(bind=engine)()
 @click.option('--phone', prompt="Téléphone")
 @click.option('--company', prompt="Entreprise")
 @require_role("commercial")
-def create_client():
+def create_client(name,email,phone,company):
     user = get_current_user()
     client = Client(
         name=name,
@@ -24,33 +24,37 @@ def create_client():
     )
     session.add(client)
     session.commit()
-    print("Client créé avec succès.")
+    click.echo("Client créé avec succès.")
 
 
 @require_role("commercial")
 def list_clients():
     clients = session.query(Client).all()
     if not clients:
-        print("Aucun client trouvé.")
+        click.echo("Aucun client trouvé.")
         return
-    print("Liste des clients :")
+    click.echo("Liste des clients :")
     for c in clients:
-        print(f"ID: {c.id}, Nom: {c.name}, Email: {c.email}, Téléphone: {c.phone}, Entreprise: {c.company}")
+        click.echo(f"ID: {c.id}, Nom: {c.name}, Email: {c.email}, Téléphone: {c.phone}, Entreprise: {c.company}")
 
+@click.command()
+@click.option('--client-id', prompt="ID du client à modifier")
+@click.option('--name', default=None, help="Nom du client (laisser vide pour conserver l'actuel)")
+@click.option('--email', default=None, help="Email du client")
+@click.option('--phone', default=None, help="Téléphone du client")
+@click.option('--company', default=None, help="Entreprise du client")
 @require_role("commercial")
-def update_client():
-    client_id = input("ID du client à modifier : ")
+def update_client(client_id, name, email, phone, company):
     client = session.query(Client).filter_by(id=client_id).first()
 
     if not client:
-        print("Client non trouvé.")
+        click.echo("Client non trouvé.")
         return
 
-    print(f"Modification du client {client.name} (ID: {client.id})")
-    name = input(f"Nom [{client.name}]: ") or client.name
-    email = input(f"Email [{client.email}]: ") or client.email
-    phone = input(f"Téléphone [{client.phone}]: ") or client.phone
-    company = input(f"Entreprise [{client.company}]: ") or client.company
+    name = name or click.prompt("Nom", default=client.name)
+    email = email or click.prompt("Email", default=client.email)
+    phone = phone or click.prompt("Téléphone", default=client.phone)
+    company = company or click.prompt("Entreprise", default=client.company)
 
     client.name = name
     client.email = email
@@ -58,4 +62,4 @@ def update_client():
     client.company = company
 
     session.commit()
-    print("Client mis à jour avec succès.")
+    click.echo("Client mis à jour avec succès.")

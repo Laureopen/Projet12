@@ -1,14 +1,29 @@
 import click
 from utils.auth import login, create_user
-from controllers.client_controller import create_client, list_clients, update_client
-from controllers.contract_controller import create_contract, update_contract, list_contracts, list_unsigned_contracts
+
+# Clients
+from controllers.client_controller import (
+    create_client,
+    list_clients,
+    update_client
+)
+
+# Contrats
+from controllers.contract_controller import (
+    create_contract,
+    update_contract,
+    list_contracts,
+    list_unsigned_contracts
+)
+
+# Événements
 from controllers.event_controller import (
     create_event,
     assign_support,
     update_my_event,
     list_events,
     list_unassigned_events,
-    list_my_events,
+    list_my_events
 )
 
 @click.group()
@@ -16,7 +31,7 @@ def cli():
     """Application CRM Epic Events"""
     pass
 
-# Authentification
+# --- Authentification ---
 @cli.command()
 def login_cmd():
     """Se connecter"""
@@ -27,44 +42,24 @@ def create_user_cmd():
     """Créer un utilisateur"""
     create_user()
 
-# Clients
+# --- Clients ---
 @cli.group()
 def client():
     """Gestion des clients"""
     pass
 
-@client.command("create")
-def create_client_cmd():
-    """Créer un client (réservé aux commerciaux)"""
-    create_client()
+client.add_command(create_client, name="create")
+client.add_command(list_clients, name="list")
+client.add_command(update_client, name="update")
 
-@client.command("list")
-def list_clients_cmd():
-    """Lister tous les clients"""
-    list_clients()
-
-@client.command("update")
-def update_client_cmd():
-    """Modifier un client"""
-    update_client()
-
-# Contrats
+# --- Contrats ---
 @cli.group()
 def contract():
     """Gestion des contrats"""
     pass
-@contract.command("create")
-@click.option('--client-id', prompt="ID du client", type=int)
-@click.option('--amount-total', prompt="Montant total", type=float)
-@click.option('--amount-remaining', prompt="Montant restant", type=float)
-def create_contract_cmd(client_id, amount_total, amount_remaining):
-    """Créer un contrat"""
-    create_contract(client_id, amount_total, amount_remaining)
 
-@contract.command("update")
-def update_contract_cmd():
-    """Mettre à jour un contrat"""
-    update_contract()
+contract.add_command(create_contract, name="create")
+contract.add_command(update_contract, name="update")
 
 @contract.command("list")
 def list_contracts_cmd():
@@ -76,40 +71,29 @@ def list_unsigned_contracts_cmd():
     """Lister les contrats non signés"""
     list_unsigned_contracts()
 
-# Événements
+# --- Événements ---
 @cli.group()
 def event():
     """Gestion des événements"""
     pass
 
-@event.command("create")
-def create_event_cmd():
-    """Créer un événement (commercial uniquement)"""
-    create_event()
-
-@event.command("assign-support")
-def assign_support_cmd():
-    """Assigner un support à un événement (gestion uniquement)"""
-    assign_support()
-
-@event.command("update-my-event")
-def update_my_event_cmd():
-    """Mettre à jour un événement (support uniquement)"""
-    update_my_event()
+event.add_command(create_event, name="create")
+event.add_command(assign_support, name="assign-support")
+event.add_command(update_my_event, name="update-my-event")
 
 @event.command("list")
 def list_events_cmd():
-    """Lister tous les événements (tous les rôles)"""
+    """Lister tous les événements"""
     list_events()
 
 @event.command("list-unassigned")
 def list_unassigned_events_cmd():
-    """Lister les événements sans support assigné (gestion uniquement)"""
+    """Lister les événements sans support assigné"""
     list_unassigned_events()
 
 @event.command("list-my-events")
 def list_my_events_cmd():
-    """Lister mes événements assignés (support uniquement)"""
+    """Lister mes événements assignés"""
     list_my_events()
 
 if __name__ == "__main__":

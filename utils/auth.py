@@ -3,7 +3,7 @@ import getpass
 import jwt
 import os
 from sqlalchemy.orm import sessionmaker
-from models.models import User
+from models.models import User, Department
 from utils.connection import engine  # à créer dans connexion.py
 from datetime import datetime, timedelta
 
@@ -15,6 +15,13 @@ TOKEN_FILE = "../.epic_token"
 Session = sessionmaker(bind=engine)
 session = Session()
 
+for name in ["sales", "support", "management"]:
+    if not session.query(Department).filter_by(name=name).first():
+        session.add(Department(name=name))
+
+session.commit()
+session.close()
+
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
@@ -25,8 +32,24 @@ def create_user():
     name = input("Nom complet : ")
     email = input("Email : ")
     password = getpass.getpass("Mot de passe : ")
-    department = input("Département (sales, support, management) : ")
-    role = input("Rôle : ")
+    # Affiche les départements disponibles
+    departments = session.query(Department).all()
+    for dept in departments:
+        print(f"{dept.id} - {dept.name}")
+
+    # Demande à l'utilisateur de saisir l'ID
+    dep_input = input("Département (id) : ").strip()
+
+    # Vérifie que c’est bien un entier et qu’il existe
+    try:
+        dep_id = int(dep_input)
+        department = session.query(Department).get(dep_id)
+        if not department:
+            print("Département introuvable.")
+            return
+    except ValueError:
+        print("Entrée invalide, veuillez entrer un ID numérique.")
+        return
 
     if session.query(User).filter_by(email=email).first():
         print("Utilisateur déjà existant.")
@@ -34,7 +57,7 @@ def create_user():
 
     hashed = hash_password(password)
     user = User(name=name, email=email, password=hashed,
-                department=department, role=role)
+                department=department)
     session.add(user)
     session.commit()
     print("Utilisateur créé avec succès.")
@@ -55,8 +78,7 @@ def login():
     payload = {
         "user_id": user.id,
         "exp": datetime.utcnow() + timedelta(hours=2),
-        "role": user.role,
-        "department": user.department,
+        "department": get_user_role(user),
         "email": user.email,
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
@@ -81,3 +103,10 @@ def get_current_user():
         raise Exception("Session expirée. Veuillez vous reconnecter.")
     except jwt.InvalidTokenError:
         raise Exception("Jeton invalide. Veuillez vous reconnecter.")
+
+def get_user_role(user):
+    if user and user.department:
+        print(user.department.name)
+        return user.department.name
+    return None
+
