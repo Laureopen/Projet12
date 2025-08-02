@@ -58,8 +58,8 @@ def contract():
     """Gestion des contrats"""
     pass
 
-contract.add_command(create_contract, name="create")
-contract.add_command(update_contract, name="update")
+contract.add_command(create_contract)
+contract.add_command(update_contract)
 
 @contract.command("list")
 def list_contracts_cmd():

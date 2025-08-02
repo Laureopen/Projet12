@@ -8,8 +8,21 @@ import click
 
 session = sessionmaker(bind=engine)()
 
-def create_contract(client_id, amount_total, amount_remaining):
-    """Créer un contrat"""
+@click.command("create")
+@click.option('--client-id', type=int, prompt="ID du client", help="ID du client")
+@click.option('--amount-total', type=float, prompt="Montant total", help="Montant total du contrat")
+@click.option('--amount-remaining', type=float, prompt="Montant restant", help="Montant restant à payer")
+@click.option(
+    '--signed',
+    type=click.Choice(['oui', 'non'], case_sensitive=False),
+    prompt="Le contrat est-il signé ? (oui/non)",
+    default="non",
+    show_default=True,
+    help="Statut de signature du contrat"
+)
+@require_role("commercial", "gestion")
+def create_contract(client_id, amount_total, amount_remaining, signed):
+    """Créer un contrat (mode interactif avec Click)"""
     user = get_current_user()
 
     contract = Contract(
@@ -17,17 +30,20 @@ def create_contract(client_id, amount_total, amount_remaining):
         sales_contact_id=user.id,
         amount_total=amount_total,
         amount_remaining=amount_remaining,
-        signed=False
+        signed=(signed.lower() == "oui"),
+        signed_date = datetime.datetime.now() if signed.lower() == "oui" else None
     )
+
     session.add(contract)
     session.commit()
-    click.echo("Contrat créé avec succès.")
+    click.echo(" Contrat créé avec succès.")
 
+@click.command("update")
+@click.option('--contract-id', type=int, prompt="ID du contrat à modifier", help="ID du contrat")
+@click.option('--amount-total', type=float, default=None, help="Montant total (optionnel)")
+@click.option('--amount-remaining', type=float, default=None, help="Montant restant (optionnel)")
+@click.option('--signed', type=click.Choice(['oui', 'non'], case_sensitive=False), default=None, help="Contrat signé ? (oui/non)")
 @require_role("commercial", "gestion")
-@click.option('--contract-id', required=True, type=int, help="ID du contrat")
-@click.option('--amount-total', type=float, help="Montant total (optionnel)")
-@click.option('--amount-remaining', type=float, help="Montant restant (optionnel)")
-@click.option('--signed', type=click.Choice(['oui', 'non'], case_sensitive=False), help="Contrat signé ? (oui/non)")
 def update_contract(contract_id, amount_total, amount_remaining, signed):
     """Mettre à jour un contrat"""
     contract = session.query(Contract).filter_by(id=contract_id).first()
@@ -37,6 +53,12 @@ def update_contract(contract_id, amount_total, amount_remaining, signed):
         return
 
     current_user = get_current_user()
+
+    # Sécurité : vérifier que current_user a bien les attributs nécessaires
+    if not hasattr(current_user, "role") or not hasattr(current_user, "id"):
+        click.echo("Erreur : utilisateur invalide (role ou id manquant).")
+        return
+
     if current_user.role == "commercial" and contract.sales_contact_id != current_user.id:
         click.echo("Vous ne pouvez modifier que vos propres contrats.")
         return
@@ -54,7 +76,7 @@ def update_contract(contract_id, amount_total, amount_remaining, signed):
             contract.signed_date = None
 
     session.commit()
-    click.echo("Contrat mis à jour.")
+    click.echo(" Contrat mis à jour.")
 
 @require_role("commercial", "gestion", "support")
 def list_contracts():
