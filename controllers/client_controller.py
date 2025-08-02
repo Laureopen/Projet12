@@ -7,7 +7,8 @@ from utils.auth_utils import require_role
 
 session = sessionmaker(bind=engine)()
 
-@click.command()
+
+@click.command("create")
 @click.option('--name', prompt="Nom du client")
 @click.option('--email', prompt="Email")
 @click.option('--phone', prompt="Téléphone")
@@ -27,6 +28,7 @@ def create_client(name,email,phone,company):
     click.echo("Client créé avec succès.")
 
 
+@click.command("list")
 @require_role("commercial")
 def list_clients():
     clients = session.query(Client).all()
@@ -37,7 +39,7 @@ def list_clients():
     for c in clients:
         click.echo(f"ID: {c.id}, Nom: {c.name}, Email: {c.email}, Téléphone: {c.phone}, Entreprise: {c.company}")
 
-@click.command()
+@click.command("update")
 @click.option('--client-id', prompt="ID du client à modifier")
 @click.option('--name', default=None, help="Nom du client (laisser vide pour conserver l'actuel)")
 @click.option('--email', default=None, help="Email du client")

@@ -8,15 +8,17 @@ from utils.auth_utils import require_role
 
 session = sessionmaker(bind=engine)()
 
+
 @click.command()
 @click.option('--contract-id', prompt="ID du contrat")
 @click.option('--name', prompt="Nom de l'événement")
-@click.option('--date', prompt="Date et heure (format YYYY-MM-DD HH:MM)")
+@click.option('--date_start', prompt="Date et heure de début (format YYYY-MM-DD HH:MM)")
+@click.option('--date_end', prompt="Date et heure de fin (format YYYY-MM-DD HH:MM)")
 @click.option('--location', prompt="Lieu")
 @click.option('--attendees', prompt="Nombre de participants", type=int)
 @click.option('--notes', prompt="Notes")
 @require_role("commercial")
-def create_event(contract_id, name, date, location, attendees, notes):
+def create_event(contract_id, name, date_start, date_end, location, attendees, notes):
     user = get_current_user()
     contract = session.query(Contract).filter_by(id=contract_id).first()
 
@@ -33,15 +35,22 @@ def create_event(contract_id, name, date, location, attendees, notes):
         return
 
     try:
-        date_obj = datetime.strptime(date, "%Y-%m-%d %H:%M")
+        date_start_obj = datetime.strptime(date_start, "%Y-%m-%d %H:%M")
     except ValueError:
-        click.echo("Format de date invalide.")
+        click.echo("Format de date de début invalide.")
+        return
+
+    try:
+        date_end_obj = datetime.strptime(date_start, "%Y-%m-%d %H:%M")
+    except ValueError:
+        click.echo("Format de date de fin invalide.")
         return
 
     event = Event(
         name=name,
         contract_id=contract.id,
-        date=date_obj,
+        date_start=date_start_obj,
+        date_end=date_end_obj,
         location=location,
         attendees=attendees,
         notes=notes
@@ -49,6 +58,7 @@ def create_event(contract_id, name, date, location, attendees, notes):
     session.add(event)
     session.commit()
     click.echo("Événement créé avec succès.")
+
 
 @click.command()
 @click.option('--event-id', prompt="ID de l'événement")
@@ -60,7 +70,10 @@ def assign_support(event_id, support_email):
         click.echo("Événement introuvable.")
         return
 
-    support_user = session.query(User).filter_by(email=support_email, department="support").first()
+    support_user = session.query(User).filter(
+        User.email == support_email,
+        User.department.has(name="support")
+    ).first()
     if not support_user:
         click.echo("Utilisateur support introuvable.")
         return
@@ -68,6 +81,7 @@ def assign_support(event_id, support_email):
     event.support_contact_id = support_user.id
     session.commit()
     click.echo(f"Support {support_user.name} assigné à l’événement.")
+
 
 @click.command()
 @click.option('--event-id', prompt="ID de l’événement")
@@ -95,7 +109,6 @@ def update_my_event(event_id, new_date, location, attendees, notes):
         click.echo("Erreur lors de la mise à jour :", e)
 
 
-@click.command()
 @require_role("commercial", "gestion", "support")
 def list_events():
     """Lister tous les événements"""
@@ -105,13 +118,12 @@ def list_events():
         return
     for event in events:
         click.echo(
-            f"ID: {event.id}, Nom: {event.name}, Date: {event.date}, "
+            f"ID: {event.id}, Nom: {event.name}, Date: {event.date_start}, "
             f"Lieu: {event.location}, Participants: {event.attendees}, "
             f"Support assigné: {event.support_contact_id}"
         )
 
 
-@click.command()
 @require_role("gestion")
 def list_unassigned_events():
     """Lister les événements sans support assigné"""
@@ -121,12 +133,11 @@ def list_unassigned_events():
         return
     for event in events:
         click.echo(
-            f"ID: {event.id}, Nom: {event.name}, Date: {event.date}, "
+            f"ID: {event.id}, Nom: {event.name}, Date: {event.date_start}, "
             f"Lieu: {event.location}, Participants: {event.attendees}"
         )
 
 
-@click.command()
 @require_role("support")
 def list_my_events():
     """Lister les événements assignés au support connecté"""
@@ -137,6 +148,6 @@ def list_my_events():
         return
     for event in events:
         click.echo(
-            f"ID: {event.id}, Nom: {event.name}, Date: {event.date}, "
+            f"ID: {event.id}, Nom: {event.name}, Date: {event.date_start}, "
             f"Lieu: {event.location}, Participants: {event.attendees}"
         )
