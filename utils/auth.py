@@ -15,18 +15,21 @@ TOKEN_FILE = "../.epic_token"
 Session = sessionmaker(bind=engine)
 session = Session()
 
-for name in ["sales", "support", "management"]:
+for name in ["commercial", "support", "gestion"]:
     if not session.query(Department).filter_by(name=name).first():
         session.add(Department(name=name))
 
 session.commit()
 session.close()
 
+
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
+
 def check_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
+
 
 def create_user():
     name = input("Nom complet : ")
@@ -62,6 +65,7 @@ def create_user():
     session.commit()
     print("Utilisateur créé avec succès.")
 
+
 def login():
     email = input("Email : ")
     password = getpass.getpass("Mot de passe : ")
@@ -88,6 +92,7 @@ def login():
 
     print("Authentification réussie.")
 
+
 def get_current_user():
     if not os.path.exists(TOKEN_FILE):
         raise Exception("Vous n'êtes pas connecté.")
@@ -104,9 +109,9 @@ def get_current_user():
     except jwt.InvalidTokenError:
         raise Exception("Jeton invalide. Veuillez vous reconnecter.")
 
+
 def get_user_role(user):
     if user and user.department:
-        print(user.department.name)
         return user.department.name
     return None
 

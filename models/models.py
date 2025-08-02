@@ -4,8 +4,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship, declarative_base
 
-
 Base = declarative_base()
+
 
 # Département (commercial, support, gestion)
 class Department(Base):
@@ -17,7 +17,7 @@ class Department(Base):
     users = relationship("User", back_populates="department")
 
     def __repr__(self):
-        return f"<Department(name={self.name.value})>"
+        return f"<Department(name={self.name})>"
 
 
 # Utilisateur
