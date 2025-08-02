@@ -41,7 +41,7 @@ def create_event(contract_id, name, date_start, date_end, location, attendees, n
         return
 
     try:
-        date_end_obj = datetime.strptime(date_start, "%Y-%m-%d %H:%M")
+        date_end_obj = datetime.strptime(date_end, "%Y-%m-%d %H:%M")
     except ValueError:
         click.echo("Format de date de fin invalide.")
         return
