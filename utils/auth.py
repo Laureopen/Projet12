@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 # Clé secrète pour le JWT (à stocker en variable d'env !)
 SECRET_KEY = os.getenv("EPIC_SECRET_KEY", "change_me")
 ALGORITHM = "HS256"
-TOKEN_FILE = "../.epic_token"
+TOKEN_FILE = ".epic_token"
 
 Session = sessionmaker(bind=engine)
 session = Session()
