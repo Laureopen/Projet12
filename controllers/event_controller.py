@@ -46,6 +46,12 @@ def create_event(contract_id, name, date_start, date_end, location, attendees, n
         click.echo("Format de date de fin invalide.")
         return
 
+    # Vérification de la cohérence des dates
+    if date_end_obj <= date_start_obj:
+        click.echo("La date de fin doit être postérieure à la date de début.")
+        return
+
+
     event = Event(
         name=name,
         contract_id=contract.id,
@@ -84,30 +90,58 @@ def assign_support(event_id, support_email):
 
 
 @click.command()
-@click.option('--event-id', prompt="ID de l’événement")
-@click.option('--new-date', default=None, help="Nouvelle date (YYYY-MM-DD HH:MM)")
+@click.option('--event-id', type=int, prompt="ID de l’événement à modifier", help="ID de l'événement")
+@click.option('--date-start', default=None, help="Nouvelle date de début (YYYY-MM-DD HH:MM)")
+@click.option('--date-end', default=None, help="Nouvelle date de fin (YYYY-MM-DD HH:MM)")
 @click.option('--location', default=None, help="Nouveau lieu")
-@click.option('--attendees', default=None, type=int, help="Nouveau nombre de participants")
-@click.option('--notes', default=None, help="Nouvelles notes")
+@click.option('--attendees', default=None, type=int, help="Nombre de participants")
+@click.option('--notes', default=None, help="Notes")
 @require_role("support")
-def update_my_event(event_id, new_date, location, attendees, notes):
-    user = get_current_user()
-    event = session.query(Event).filter_by(id=event_id, support_contact_id=user.id).first()
+def update_my_event(event_id, date_start, date_end, location, attendees, notes):
+    """Mettre à jour un événement (support uniquement)"""
+    current_user = get_current_user()
 
-    if not event:
-        click.echo("Événement non trouvé ou non assigné à vous.")
+    if not hasattr(current_user, "id"):
+        click.echo("Erreur : utilisateur invalide (ID manquant).")
         return
 
-    try:
-        event.date = datetime.strptime(new_date, "%Y-%m-%d %H:%M") if new_date else event.date
-        event.location = location or event.location
-        event.attendees = attendees if attendees is not None else event.attendees
-        event.notes = notes or event.notes
-        session.commit()
-        click.echo("Événement mis à jour.")
-    except Exception as e:
-        click.echo("Erreur lors de la mise à jour :", e)
+    event = session.query(Event).filter_by(id=event_id).first()
 
+    if not event or event.support_contact_id != current_user.id:
+        click.echo("Événement introuvable ou non assigné à vous.")
+        return
+
+    # Saisie interactive si valeurs absentes
+    if date_start is None:
+        default_start = event.date_start.strftime("%Y-%m-%d %H:%M") if event.date_start else ""
+        date_start = click.prompt("Date de début (YYYY-MM-DD HH:MM)", default=default_start)
+
+    if date_end is None:
+        default_end = event.date_end.strftime("%Y-%m-%d %H:%M") if event.date_end else ""
+        date_end = click.prompt("Date de fin (YYYY-MM-DD HH:MM)", default=default_end)
+
+    if location is None:
+        location = click.prompt("Lieu", default=event.location)
+
+    if attendees is None:
+        attendees = click.prompt("Nombre de participants", default=event.attendees, type=int)
+
+    if notes is None:
+        notes = click.prompt("Notes", default=event.notes or "")
+
+    try:
+        event.date_start = datetime.strptime(date_start, "%Y-%m-%d %H:%M")
+        event.date_end = datetime.strptime(date_end, "%Y-%m-%d %H:%M")
+        event.location = location
+        event.attendees = attendees
+        event.notes = notes
+
+        session.commit()
+        click.echo("Événement mis à jour avec succès.")
+    except ValueError:
+        click.echo("Erreur : format de date invalide. Utilisez YYYY-MM-DD HH:MM.")
+    except Exception as e:
+        click.echo(f"Erreur lors de la mise à jour : {e}")
 
 @require_role("commercial", "gestion", "support")
 def list_events():

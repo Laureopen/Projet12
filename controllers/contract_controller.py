@@ -1,5 +1,5 @@
 from sqlalchemy.orm import sessionmaker
-from models.models import Contract
+from models.models import Contract, Client
 from utils.connection import engine
 from utils.auth import get_current_user, get_user_role
 from utils.auth_utils import require_role
@@ -8,9 +8,21 @@ import click
 
 session = sessionmaker(bind=engine)()
 
+def validate_client_id(ctx, param, value):
+    client = session.query(Client).filter_by(id=value).first()
+    if not client:
+        raise click.BadParameter(f"Aucun client trouvé avec l'ID {value}.")
+    return value
+
 
 @click.command("create")
-@click.option('--client-id', type=int, prompt="ID du client", help="ID du client")
+@click.option(
+    '--client-id',
+    type=int,
+    prompt="ID du client",
+    callback=validate_client_id,
+    help="ID du client"
+)
 @click.option('--amount-total', type=float, prompt="Montant total", help="Montant total du contrat")
 @click.option('--amount-remaining', type=float, prompt="Montant restant", help="Montant restant à payer")
 @click.option(
