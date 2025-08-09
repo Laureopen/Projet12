@@ -30,25 +30,6 @@ def validate_client_id(ctx, param, value):
     return value
 
 
-@click.command("create")
-@click.option(
-    '--client-id',
-    type=int,
-    prompt="ID du client",
-    callback=validate_client_id,
-    help="ID du client"
-)
-@click.option('--amount-total', type=float, prompt="Montant total", help="Montant total du contrat")
-@click.option('--amount-remaining', type=float, prompt="Montant restant", help="Montant restant à payer")
-@click.option(
-    '--signed',
-    type=click.Choice(['oui', 'non'], case_sensitive=False),
-    prompt="Le contrat est-il signé ? (oui/non)",
-    default="non",
-    show_default=True,
-    help="Statut de signature du contrat"
-)
-@require_role("commercial", "gestion")
 def create_contract(client_id, amount_total, amount_remaining, signed):
     """
        Crée un contrat pour un client donné (mode interactif avec Click).
@@ -81,12 +62,6 @@ def create_contract(client_id, amount_total, amount_remaining, signed):
     click.echo(" Contrat créé avec succès.")
 
 
-@click.command("update")
-@click.option('--contract-id', type=int, prompt="ID du contrat à modifier", help="ID du contrat")
-@click.option('--amount-total', type=float, default=None, help="Montant total (laisser vide pour conserver l'actuel)")
-@click.option('--amount-remaining', type=float, default=None, help="Montant restant (laisser vide pour conserver l'actuel)")
-@click.option('--signed', type=click.Choice(['oui', 'non'], case_sensitive=False), default=None, help="Contrat signé ? (oui/non)")
-@require_role("commercial", "gestion")
 def update_contract(contract_id, amount_total, amount_remaining, signed):
     """
       Met à jour les informations d'un contrat existant.

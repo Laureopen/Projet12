@@ -1,5 +1,6 @@
 from utils.auth import get_current_user, get_user_role
 
+
 def require_role(*allowed_roles):
     def decorator(func):
         def wrapper(*args, **kwargs):

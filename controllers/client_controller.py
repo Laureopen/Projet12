@@ -4,9 +4,9 @@ from sqlalchemy.orm import sessionmaker
 from models.client import Client
 from utils.connection import engine
 from utils.auth import get_current_user
-from utils.auth_utils import require_role
 
 session = sessionmaker(bind=engine)()
+
 
 #  Validation simple d'email
 def validate_email(ctx, param, value):
@@ -29,6 +29,7 @@ def validate_email(ctx, param, value):
         raise click.BadParameter("Format d'email invalide.")
     return value
 
+
 #  Validation simple de téléphone
 def validate_phone(ctx, param, value):
     """
@@ -47,16 +48,11 @@ def validate_phone(ctx, param, value):
        """
     pattern = r"^\+?\d{10,15}$"  # accepte + suivi de 10 à 15 chiffres
     if not re.match(pattern, value):
-        raise click.BadParameter("Numéro de téléphone invalide. Entrez entre 10 et 15 chiffres, avec éventuellement un '+'.")
+        raise click.BadParameter(
+            "Numéro de téléphone invalide. Entrez entre 10 et 15 chiffres, avec éventuellement un '+'.")
     return value
 
 
-@click.command("create")
-@click.option('--name', prompt="Nom du client")
-@click.option('--email', prompt="Email", callback=validate_email)
-@click.option('--phone', prompt="Téléphone", callback=validate_phone)
-@click.option('--company', prompt="Entreprise")
-@require_role("commercial")
 def create_client(name, email, phone, company):
     """
       Crée un nouveau client dans la base de données.
@@ -86,8 +82,6 @@ def create_client(name, email, phone, company):
     click.echo(" Client créé avec succès.")
 
 
-@click.command("list")
-@require_role("commercial")
 def list_clients():
     """
        Affiche la liste des clients enregistrés.
@@ -107,13 +101,6 @@ def list_clients():
         click.echo(f"ID: {c.id}, Nom: {c.name}, Email: {c.email}, Téléphone: {c.phone}, Entreprise: {c.company}")
 
 
-@click.command("update")
-@click.option('--client-id', prompt="ID du client à modifier")
-@click.option('--name', default=None, help="Nom du client (laisser vide pour conserver l'actuel)")
-@click.option('--email', default=None, help="Email du client")
-@click.option('--phone', default=None, help="Téléphone du client")
-@click.option('--company', default=None, help="Entreprise du client")
-@require_role("commercial")
 def update_client(client_id, name, email, phone, company):
     """
        Met à jour les informations d'un client existant.
@@ -148,8 +135,6 @@ def update_client(client_id, name, email, phone, company):
     except click.BadParameter as e:
         click.echo(f"Erreur : {e}")
         return
-
-
 
     client.name = name
     client.email = email

@@ -1,7 +1,6 @@
 from sqlalchemy import create_engine
 import os
-from models import Base  # importe Base depuis models/__init__.py
-import models
+from models.base import Base
 
 db_user ="crm"
 db_password = os.getenv("EPIC_DB_PASSWORD")
@@ -19,4 +18,3 @@ try:
     Base.metadata.create_all(bind=engine)
 except Exception as ex:
     print(ex)
-

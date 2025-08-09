@@ -11,15 +11,6 @@ from utils.auth_utils import require_role
 session = sessionmaker(bind=engine)()
 
 
-@click.command()
-@click.option('--contract-id', prompt="ID du contrat")
-@click.option('--name', prompt="Nom de l'événement")
-@click.option('--date_start', prompt="Date et heure de début (format YYYY-MM-DD HH:MM)")
-@click.option('--date_end', prompt="Date et heure de fin (format YYYY-MM-DD HH:MM)")
-@click.option('--location', prompt="Lieu")
-@click.option('--attendees', prompt="Nombre de participants", type=int)
-@click.option('--notes', prompt="Notes")
-@require_role("commercial")
 def create_event(contract_id, name, date_start, date_end, location, attendees, notes):
     """
        Crée un événement pour un contrat signé appartenant au commercial connecté.
@@ -71,7 +62,6 @@ def create_event(contract_id, name, date_start, date_end, location, attendees, n
         click.echo("La date de fin doit être postérieure à la date de début.")
         return
 
-
     event = Event(
         name=name,
         contract_id=contract.id,
@@ -86,10 +76,6 @@ def create_event(contract_id, name, date_start, date_end, location, attendees, n
     click.echo("Événement créé avec succès.")
 
 
-@click.command()
-@click.option('--event-id', prompt="ID de l'événement")
-@click.option('--support-email', prompt="Email du support à assigner")
-@require_role("gestion")
 def assign_support(event_id, support_email):
     """
       Assigne un utilisateur du support à un événement donné.
@@ -122,14 +108,6 @@ def assign_support(event_id, support_email):
     click.echo(f"Support {support_user.name} assigné à l’événement.")
 
 
-@click.command()
-@click.option('--event-id', type=int, prompt="ID de l’événement à modifier", help="ID de l'événement")
-@click.option('--date-start', default=None, help="Nouvelle date de début (YYYY-MM-DD HH:MM)")
-@click.option('--date-end', default=None, help="Nouvelle date de fin (YYYY-MM-DD HH:MM)")
-@click.option('--location', default=None, help="Nouveau lieu")
-@click.option('--attendees', default=None, type=int, help="Nombre de participants")
-@click.option('--notes', default=None, help="Notes")
-@require_role("support")
 def update_my_event(event_id, date_start, date_end, location, attendees, notes):
     """
        Met à jour les informations d’un événement assigné au support connecté.
@@ -191,6 +169,7 @@ def update_my_event(event_id, date_start, date_end, location, attendees, notes):
         click.echo("Erreur : format de date invalide. Utilisez YYYY-MM-DD HH:MM.")
     except Exception as e:
         click.echo(f"Erreur lors de la mise à jour : {e}")
+
 
 @require_role("commercial", "gestion", "support")
 def list_events():
