@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 import os
-
-from models.models import Base
+from models import Base  # importe Base depuis models/__init__.py
+import models
 
 db_user ="crm"
 db_password = os.getenv("EPIC_DB_PASSWORD")
