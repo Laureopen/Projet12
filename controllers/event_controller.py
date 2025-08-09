@@ -1,7 +1,9 @@
 import click
 from datetime import datetime
 from sqlalchemy.orm import sessionmaker
-from models.models import Event, Contract, User
+from models.event import Event
+from models.contract import Contract
+from models.user import User
 from utils.connection import engine
 from utils.auth import get_current_user
 from utils.auth_utils import require_role
@@ -19,6 +21,24 @@ session = sessionmaker(bind=engine)()
 @click.option('--notes', prompt="Notes")
 @require_role("commercial")
 def create_event(contract_id, name, date_start, date_end, location, attendees, notes):
+    """
+       Crée un événement pour un contrat signé appartenant au commercial connecté.
+
+       Args:
+           contract_id (int): ID du contrat.
+           name (str): Nom de l'événement.
+           date_start (str): Date et heure de début (format YYYY-MM-DD HH:MM).
+           date_end (str): Date et heure de fin (format YYYY-MM-DD HH:MM).
+           location (str): Lieu de l'événement.
+           attendees (int): Nombre de participants.
+           notes (str): Notes supplémentaires.
+
+       Access:
+           Rôle requis : commercial
+
+       Effets:
+           Enregistre l'événement dans la base de données après vérifications.
+       """
     user = get_current_user()
     contract = session.query(Contract).filter_by(id=contract_id).first()
 
@@ -71,6 +91,19 @@ def create_event(contract_id, name, date_start, date_end, location, attendees, n
 @click.option('--support-email', prompt="Email du support à assigner")
 @require_role("gestion")
 def assign_support(event_id, support_email):
+    """
+      Assigne un utilisateur du support à un événement donné.
+
+      Args:
+          event_id (int): ID de l'événement.
+          support_email (str): Email de l'utilisateur à assigner.
+
+      Access:
+          Rôle requis : gestion
+
+      Effets:
+          Met à jour le support_contact_id de l'événement si valide.
+      """
     event = session.query(Event).filter_by(id=event_id).first()
     if not event:
         click.echo("Événement introuvable.")
@@ -98,7 +131,23 @@ def assign_support(event_id, support_email):
 @click.option('--notes', default=None, help="Notes")
 @require_role("support")
 def update_my_event(event_id, date_start, date_end, location, attendees, notes):
-    """Mettre à jour un événement (support uniquement)"""
+    """
+       Met à jour les informations d’un événement assigné au support connecté.
+
+       Args:
+           event_id (int): ID de l'événement à mettre à jour.
+           date_start (str, optional): Nouvelle date de début.
+           date_end (str, optional): Nouvelle date de fin.
+           location (str, optional): Nouveau lieu.
+           attendees (int, optional): Nombre de participants.
+           notes (str, optional): Notes complémentaires.
+
+       Access:
+           Rôle requis : support
+
+       Effets:
+           Met à jour les champs de l'événement si l'utilisateur est bien assigné.
+       """
     current_user = get_current_user()
 
     if not hasattr(current_user, "id"):
@@ -145,7 +194,15 @@ def update_my_event(event_id, date_start, date_end, location, attendees, notes):
 
 @require_role("commercial", "gestion", "support")
 def list_events():
-    """Lister tous les événements"""
+    """
+       Liste tous les événements enregistrés.
+
+       Access:
+           Rôles requis : commercial, gestion, support
+
+       Effets:
+           Affiche les détails de tous les événements existants.
+       """
     events = session.query(Event).all()
     if not events:
         click.echo("Aucun événement trouvé.")
@@ -160,7 +217,15 @@ def list_events():
 
 @require_role("gestion")
 def list_unassigned_events():
-    """Lister les événements sans support assigné"""
+    """
+    Liste les événements sans support assigné.
+
+    Access:
+        Rôle requis : gestion
+
+    Effets:
+        Affiche les événements dont le champ `support_contact_id` est vide.
+    """
     events = session.query(Event).filter_by(support_contact_id=None).all()
     if not events:
         click.echo("Aucun événement non assigné trouvé.")
@@ -174,7 +239,15 @@ def list_unassigned_events():
 
 @require_role("support")
 def list_my_events():
-    """Lister les événements assignés au support connecté"""
+    """
+       Liste les événements assignés au support connecté.
+
+       Access:
+           Rôle requis : support
+
+       Effets:
+           Affiche uniquement les événements où l'utilisateur est désigné comme support.
+       """
     user = get_current_user()
     events = session.query(Event).filter_by(support_contact_id=user.id).all()
     if not events:

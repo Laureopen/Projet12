@@ -1,7 +1,7 @@
 import click
 import re
 from sqlalchemy.orm import sessionmaker
-from models.models import Client
+from models.client import Client
 from utils.connection import engine
 from utils.auth import get_current_user
 from utils.auth_utils import require_role
@@ -10,6 +10,20 @@ session = sessionmaker(bind=engine)()
 
 #  Validation simple d'email
 def validate_email(ctx, param, value):
+    """
+       Valide le format d'une adresse email.
+
+       Args:
+           ctx (click.Context): Contexte Click.
+           param (click.Parameter): Paramètre Click.
+           value (str): Valeur de l'email à valider.
+
+       Returns:
+           str: Email validé.
+
+       Raises:
+           click.BadParameter: Si le format de l'email est invalide.
+       """
     pattern = r"^[^@]+@[^@]+\.[^@]+$"
     if not re.match(pattern, value):
         raise click.BadParameter("Format d'email invalide.")
@@ -17,6 +31,20 @@ def validate_email(ctx, param, value):
 
 #  Validation simple de téléphone
 def validate_phone(ctx, param, value):
+    """
+       Valide le format d'un numéro de téléphone.
+
+       Args:
+           ctx (click.Context): Contexte Click.
+           param (click.Parameter): Paramètre Click.
+           value (str): Numéro de téléphone à valider.
+
+       Returns:
+           str: Numéro validé.
+
+       Raises:
+           click.BadParameter: Si le numéro est invalide (non conforme à 10-15 chiffres avec ou sans '+').
+       """
     pattern = r"^\+?\d{10,15}$"  # accepte + suivi de 10 à 15 chiffres
     if not re.match(pattern, value):
         raise click.BadParameter("Numéro de téléphone invalide. Entrez entre 10 et 15 chiffres, avec éventuellement un '+'.")
@@ -30,6 +58,21 @@ def validate_phone(ctx, param, value):
 @click.option('--company', prompt="Entreprise")
 @require_role("commercial")
 def create_client(name, email, phone, company):
+    """
+      Crée un nouveau client dans la base de données.
+
+      Args:
+          name (str): Nom du client.
+          email (str): Adresse email validée du client.
+          phone (str): Numéro de téléphone validé du client.
+          company (str): Nom de l'entreprise du client.
+
+      Access:
+          Rôle requis : commercial
+
+      Effets:
+          Ajoute un client à la base et affiche un message de confirmation.
+      """
     user = get_current_user()
     client = Client(
         name=name,
@@ -46,6 +89,15 @@ def create_client(name, email, phone, company):
 @click.command("list")
 @require_role("commercial")
 def list_clients():
+    """
+       Affiche la liste des clients enregistrés.
+
+       Access:
+           Rôle requis : commercial
+
+       Effets:
+           Affiche les détails de chaque client ou un message si aucun client n'est trouvé.
+       """
     clients = session.query(Client).all()
     if not clients:
         click.echo("Aucun client trouvé.")
@@ -63,6 +115,22 @@ def list_clients():
 @click.option('--company', default=None, help="Entreprise du client")
 @require_role("commercial")
 def update_client(client_id, name, email, phone, company):
+    """
+       Met à jour les informations d'un client existant.
+
+       Args:
+           client_id (int): ID du client à modifier.
+           name (str, optional): Nouveau nom. Utilise l'actuel si non fourni.
+           email (str, optional): Nouvelle adresse email.
+           phone (str, optional): Nouveau téléphone.
+           company (str, optional): Nouvelle entreprise.
+
+       Access:
+           Rôle requis : commercial
+
+       Effets:
+           Met à jour les champs modifiés et affiche un message de confirmation ou d'erreur.
+       """
     client = session.query(Client).filter_by(id=client_id).first()
 
     if not client:
