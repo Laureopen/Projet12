@@ -6,6 +6,7 @@ from utils.connection import engine
 from utils.auth import get_current_user, get_user_role
 import datetime
 import click
+from utils.auth_utils import require_role
 
 session = sessionmaker(bind=engine)()
 
@@ -17,7 +18,7 @@ def validate_client_id(ctx, param, value):
         raise click.BadParameter(f"Aucun client trouvé avec l'ID {value}.")
     return value
 
-
+@require_role("commercial", "gestion")
 def create_contract(client_id, amount_total, amount_remaining, signed):
     """Crée un contrat pour un client donné (mode interactif avec Click)."""
     user = get_current_user()
@@ -35,7 +36,7 @@ def create_contract(client_id, amount_total, amount_remaining, signed):
     session.commit()
     click.echo(" Contrat créé avec succès.")
 
-
+@require_role("commercial", "gestion")
 def update_contract(contract_id, amount_total, amount_remaining, signed):
     """Met à jour les informations d'un contrat existant."""
     contract = session.query(Contract).filter_by(id=contract_id).first()
@@ -75,7 +76,7 @@ def update_contract(contract_id, amount_total, amount_remaining, signed):
     session.commit()
     click.echo("Contrat mis à jour avec succès.")
 
-
+@require_role("commercial", "gestion", "support")
 def list_contracts():
     """
     Affiche la liste de tous les contrats avec les champs demandés.
@@ -98,7 +99,7 @@ def list_contracts():
             f"Signé: {'Oui' if contract.signed else 'Non'}"
         )
 
-
+@require_role("commercial", "gestion")
 def list_unsigned_contracts():
     """
     Affiche la liste des contrats non signés avec les champs demandés.

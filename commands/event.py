@@ -9,7 +9,6 @@ from controllers.event_controller import (
     list_unassigned_events,
     list_my_events, delete_event
 )
-from utils.auth_utils import require_role
 
 
 @click.group()
@@ -32,7 +31,6 @@ def event():
 @click.option('--location', prompt="Lieu")
 @click.option('--attendees', prompt="Nombre de participants", type=int)
 @click.option('--notes', prompt="Notes")
-@require_role("commercial")
 def create_event_cmd(contract_id, name, date_start, date_end, location, attendees, notes):
     """Créer un évènement"""
     create_event(contract_id, name, date_start, date_end, location, attendees, notes)
@@ -41,7 +39,6 @@ def create_event_cmd(contract_id, name, date_start, date_end, location, attendee
 @click.command("assign-support")
 @click.option('--event-id', prompt="ID de l'événement")
 @click.option('--support-email', prompt="Email du support à assigner")
-@require_role("gestion")
 def assign_support_cmd(event_id, support_email):
     """Affecter un évènement à un membre du support"""
     assign_support(event_id, support_email)
@@ -53,7 +50,6 @@ def assign_support_cmd(event_id, support_email):
 @click.option('--location', default=None, help="Nouveau lieu")
 @click.option('--attendees', default=None, type=int, help="Nombre de participants")
 @click.option('--notes', default=None, help="Notes")
-@require_role("support")
 def update_my_event_cmd(date_start, date_end, location, attendees, notes):
     """Mettre à jour un événement"""
     list_events()
@@ -62,28 +58,24 @@ def update_my_event_cmd(date_start, date_end, location, attendees, notes):
 
 
 @event_cli.command("list")
-@require_role("commercial", "gestion", "support")
 def list_events_cmd():
     """Lister tous les événements"""
     list_events()
 
 
 @event_cli.command("list-unassigned")
-@require_role("gestion")
 def list_unassigned_events_cmd():
     """Lister les événements sans support assigné"""
     list_unassigned_events()
 
 
 @event_cli.command("list-my-events")
-@require_role("support")
 def list_my_events_cmd():
     """Lister mes événements assignés"""
     list_my_events()
 
 
 @event_cli.command("delete")
-@require_role("commercial")
 def delete_event_cmd():
     """Supprimer un évènement"""
     list_events()

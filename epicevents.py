@@ -6,7 +6,10 @@ from commands.event import event_cli
 from commands.user import user_cli
 from utils.auth import login
 import sentry_sdk
+from dotenv import load_dotenv
 
+
+load_dotenv()
 sentry_sdk.init(
     os.getenv("SENTRY_KEY")
 )

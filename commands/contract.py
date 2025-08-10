@@ -7,7 +7,6 @@ from controllers.contract_controller import (
     list_contracts,
     list_unsigned_contracts, validate_client_id
 )
-from utils.auth_utils import require_role
 
 
 @click.group()
@@ -40,7 +39,6 @@ def contract():
     show_default=True,
     help="Statut de signature du contrat"
 )
-@require_role("commercial", "gestion")
 def create_contract_cmd(client_id, amount_total, amount_remaining, signed):
     """Créer un contrat"""
     create_contract(client_id, amount_total, amount_remaining, signed)
@@ -52,7 +50,6 @@ def create_contract_cmd(client_id, amount_total, amount_remaining, signed):
               help="Montant restant (laisser vide pour conserver l'actuel)")
 @click.option('--signed', type=click.Choice(['oui', 'non'], case_sensitive=False), default=None,
               help="Contrat signé ? (oui/non)")
-@require_role("commercial", "gestion")
 def update_contract_cmd(amount_total, amount_remaining, signed):
     list_contracts()
     contract_id = click.prompt("\n\nID du contrat à modifier", type=int)
@@ -60,14 +57,12 @@ def update_contract_cmd(amount_total, amount_remaining, signed):
 
 
 @contract_cli.command("list")
-@require_role("commercial", "gestion", "support")
 def list_contracts_cmd():
     """Lister tous les contrats"""
     list_contracts()
 
 
 @contract_cli.command("unsigned")
-@require_role("commercial", "gestion")
 def list_unsigned_contracts_cmd():
     """Lister les contrats non signés"""
     list_unsigned_contracts()

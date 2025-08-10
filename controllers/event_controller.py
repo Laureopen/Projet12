@@ -6,10 +6,12 @@ from models.contract import Contract
 from models.user import User
 from utils.connection import engine
 from utils.auth import get_current_user, get_user_role
+from utils.auth_utils import require_role
+
 
 session = sessionmaker(bind=engine)()
 
-
+@require_role("commercial")
 def create_event(contract_id, name, date_start, date_end, location, attendees, notes):
     """Crée un événement pour un contrat signé appartenant au commercial connecté."""
     user = get_current_user()
@@ -57,7 +59,7 @@ def create_event(contract_id, name, date_start, date_end, location, attendees, n
     session.commit()
     click.echo("Événement créé avec succès.")
 
-
+@require_role("commercial")
 def delete_event(event_id):
     current_user = get_current_user()
 
@@ -78,7 +80,7 @@ def delete_event(event_id):
     session.commit()
     click.echo(f"Événement ID {event_id} supprimé avec succès.")
 
-
+@require_role("gestion")
 def assign_support(event_id, support_email):
     """Met à jour le support_contact_id de l'événement si valide."""
     event = session.query(Event).filter_by(id=event_id).first()
@@ -98,7 +100,7 @@ def assign_support(event_id, support_email):
     session.commit()
     click.echo(f"Support {support_user.name} assigné à l’événement.")
 
-
+@require_role("support")
 def update_my_event(event_id, date_start, date_end, location, attendees, notes):
     """Met à jour les informations d’un événement assigné au support connecté."""
     current_user = get_current_user()
@@ -145,7 +147,7 @@ def update_my_event(event_id, date_start, date_end, location, attendees, notes):
     except Exception as e:
         click.echo(f"Erreur lors de la mise à jour : {e}")
 
-
+@require_role("commercial", "gestion", "support")
 def list_events():
     """Liste tous les événements enregistrés."""
     events = session.query(Event).all()
@@ -159,7 +161,7 @@ def list_events():
             f"Support assigné: {event.support_contact_id}"
         )
 
-
+@require_role("gestion")
 def list_unassigned_events():
     """Liste les événements sans support assigné."""
     events = session.query(Event).filter_by(support_contact_id=None).all()
@@ -172,7 +174,7 @@ def list_unassigned_events():
             f"Lieu: {event.location}, Participants: {event.attendees}"
         )
 
-
+@require_role("support")
 def list_my_events():
     """Affiche uniquement les événements où l'utilisateur est désigné comme support."""
     user = get_current_user()

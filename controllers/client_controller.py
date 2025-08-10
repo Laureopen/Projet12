@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from models.client import Client
 from utils.connection import engine
 from utils.auth import get_current_user
-
+from utils.auth_utils import require_role
 session = sessionmaker(bind=engine)()
 
 
@@ -26,7 +26,7 @@ def validate_phone(ctx, param, value):
             "Numéro de téléphone invalide. Entrez entre 10 et 15 chiffres, avec éventuellement un '+'.")
     return value
 
-
+@require_role("commercial")
 def create_client(name, email, phone, company):
     """Crée un nouveau client dans la base de données."""
     user = get_current_user()
@@ -41,7 +41,7 @@ def create_client(name, email, phone, company):
     session.commit()
     click.echo(" Client créé avec succès.")
 
-
+@require_role("commercial","gestion","support")
 def list_clients():
     """Affiche la liste des clients enregistrés."""
     clients = session.query(Client).all()
@@ -61,7 +61,7 @@ def list_clients():
             f"Créé le: {created_at_str} | Dernière MAJ: {updated_at_str}"
         )
 
-
+@require_role("commercial")
 def update_client(client_id, name, email, phone, company):
     """Met à jour les informations d'un client existant."""
     client = session.query(Client).filter_by(id=client_id).first()

@@ -1,8 +1,8 @@
 import getpass
-
+import sentry_sdk
 import click
+from utils.auth_utils import require_role
 from sqlalchemy.orm import sessionmaker
-
 from models.department import Department
 from models.user import User
 from utils.auth import hash_password, get_current_user, get_user_role
@@ -10,7 +10,7 @@ from utils.connection import engine
 
 session = sessionmaker(bind=engine)()
 
-
+@require_role("gestion")
 def create_user(name, email):
     password = getpass.getpass("Mot de passe : ")
     # Affiche les départements disponibles
@@ -41,9 +41,10 @@ def create_user(name, email):
                 department=department)
     session.add(user)
     session.commit()
+    sentry_sdk.capture_message(f"Utilisateur créé : {email} par {get_current_user().email}")
     print("Utilisateur créé avec succès.")
 
-
+@require_role("gestion")
 def update_user(email, name, password, department_id):
     """
     Met à jour un utilisateur identifié par son email.
@@ -81,8 +82,10 @@ def update_user(email, name, password, department_id):
     user.department = department
 
     session.commit()
+    sentry_sdk.capture_message(f"Utilisateur modifié : {email} par {get_current_user().email}")
     click.echo("Utilisateur mis à jour avec succès.")
 
+@require_role("gestion")
 def delete_user(email):
     """
     Supprime un utilisateur identifié par son email.

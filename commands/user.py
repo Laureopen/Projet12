@@ -6,7 +6,6 @@ from controllers.user_controller import (
     update_user,
     delete_user
 )
-from utils.auth_utils import require_role
 
 
 @click.group()
@@ -16,13 +15,11 @@ def user_cli():
 
 
 @click.command("create-user")
-@require_role("gestion")
 @click.option("--name", prompt="Nom complet", help="Nom complet de l'utilisateur")
 @click.option("--email", prompt="Email", help="Adresse email")
 def create_user_cmd(name, email):
     """Création d'un utilisateur"""
     create_user(name, email)
-
 
 @click.command("update-user")
 @click.option('--email', type=str, prompt="Email de l'utilisateur à modifier", help="ID de l'utilisateur")
