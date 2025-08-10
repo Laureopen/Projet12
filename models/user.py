@@ -37,5 +37,5 @@ class User(Base):
     supported_events = relationship("Event", back_populates="support_contact", foreign_keys="Event.support_contact_id")
 
     def __repr__(self):
-        return f"<User(name={self.name}, role={self.department.name.value})>"
+        return f"<User(name={self.name}, role={self.department.name})>"
 

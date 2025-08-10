@@ -44,7 +44,7 @@ def create_user(name, email):
     # Vérification que l'entrée est un entier valide et que le département existe
     try:
         dep_id = int(dep_input)
-        department = session.query(Department).get(dep_id)
+        department = session.get(Department, dep_id)
         if not department:
             print("Département introuvable.")
             return
