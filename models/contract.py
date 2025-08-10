@@ -6,6 +6,22 @@ from .base import Base
 
 # Contrat
 class Contract(Base):
+    """
+        Représente un contrat commercial lié à un client et un commercial.
+
+        Attributs:
+            id (int): Identifiant unique du contrat.
+            client_id (int): Clé étrangère vers le client associé.
+            client (Client): Relation SQLAlchemy vers l'objet Client.
+            sales_contact_id (int): Clé étrangère vers l'utilisateur commercial associé.
+            sales_contact (User): Relation vers l'objet User représentant le commercial.
+            amount_total (float): Montant total du contrat.
+            amount_remaining (float): Montant restant à payer.
+            signed (bool): Statut indiquant si le contrat est signé.
+            signed_date (datetime): Date de signature du contrat (peut être None).
+            created_date (datetime): Date de création du contrat.
+            events (list[Event]): Liste des événements liés à ce contrat.
+        """
     __tablename__ = "contracts"
 
     id = Column(Integer, primary_key=True)

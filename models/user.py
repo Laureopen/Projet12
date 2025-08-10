@@ -6,6 +6,21 @@ from .base import Base
 
 # Utilisateur
 class User(Base):
+    """
+        Représente un utilisateur du système, lié à un département et pouvant être
+        un commercial ou un support.
+
+        Attributs:
+            id (int): Identifiant unique de l'utilisateur.
+            name (str): Nom complet de l'utilisateur.
+            email (str): Adresse email unique de l'utilisateur.
+            password (str): Mot de passe hashé de l'utilisateur.
+            department_id (int): Identifiant du département auquel appartient l'utilisateur.
+            department (Department): Relation vers le département.
+            clients (list[Client]): Liste des clients associés à l'utilisateur (en tant que commercial).
+            contracts (list[Contract]): Liste des contrats associés à l'utilisateur (en tant que commercial).
+            supported_events (list[Event]): Liste des événements supportés par l'utilisateur (en tant que support).
+        """
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
