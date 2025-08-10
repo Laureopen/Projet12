@@ -47,12 +47,6 @@ def create_user(name, email):
 def update_user(email, name, password, department_id):
     """
     Met à jour un utilisateur identifié par son email.
-
-    Args:
-        email (str): Email de l'utilisateur à modifier.
-        name (str, optional): Nouveau nom complet.
-        password (str, optional): Nouveau mot de passe.
-        department_id (int, optional): Nouvel ID du département.
     """
     user = session.query(User).filter_by(email=email).first()
     if not user:

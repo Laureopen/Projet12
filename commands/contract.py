@@ -47,24 +47,27 @@ def create_contract_cmd(client_id, amount_total, amount_remaining, signed):
 
 
 @click.command("update")
-@click.option('--contract-id', type=int, prompt="ID du contrat à modifier", help="ID du contrat")
 @click.option('--amount-total', type=float, default=None, help="Montant total (laisser vide pour conserver l'actuel)")
 @click.option('--amount-remaining', type=float, default=None,
               help="Montant restant (laisser vide pour conserver l'actuel)")
 @click.option('--signed', type=click.Choice(['oui', 'non'], case_sensitive=False), default=None,
               help="Contrat signé ? (oui/non)")
 @require_role("commercial", "gestion")
-def update_contract_cmd(contract_id, amount_total, amount_remaining, signed):
+def update_contract_cmd(amount_total, amount_remaining, signed):
+    list_contracts()
+    contract_id = click.prompt("\n\nID du contrat à modifier", type=int)
     update_contract(contract_id, amount_total, amount_remaining, signed)
 
 
 @contract_cli.command("list")
+@require_role("commercial", "gestion", "support")
 def list_contracts_cmd():
     """Lister tous les contrats"""
     list_contracts()
 
 
 @contract_cli.command("unsigned")
+@require_role("commercial", "gestion")
 def list_unsigned_contracts_cmd():
     """Lister les contrats non signés"""
     list_unsigned_contracts()

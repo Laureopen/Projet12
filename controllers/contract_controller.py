@@ -1,29 +1,17 @@
 from sqlalchemy.orm import sessionmaker
 from models.contract import Contract
 from models.client import Client
+from models.user import User
 from utils.connection import engine
 from utils.auth import get_current_user, get_user_role
-from utils.auth_utils import require_role
 import datetime
 import click
 
 session = sessionmaker(bind=engine)()
 
+
 def validate_client_id(ctx, param, value):
-    """
-       Valide que l'ID client fourni correspond à un client existant.
-
-       Args:
-           ctx (click.Context): Contexte Click.
-           param (click.Parameter): Paramètre Click.
-           value (int): ID du client.
-
-       Returns:
-           int: L'ID validé du client.
-
-       Raises:
-           click.BadParameter: Si aucun client avec cet ID n'existe.
-       """
+    """Valide que l'ID client fourni correspond à un client existant."""
     client = session.query(Client).filter_by(id=value).first()
     if not client:
         raise click.BadParameter(f"Aucun client trouvé avec l'ID {value}.")
@@ -31,21 +19,7 @@ def validate_client_id(ctx, param, value):
 
 
 def create_contract(client_id, amount_total, amount_remaining, signed):
-    """
-       Crée un contrat pour un client donné (mode interactif avec Click).
-
-       Args:
-           client_id (int): ID du client concerné.
-           amount_total (float): Montant total du contrat.
-           amount_remaining (float): Montant restant à payer.
-           signed (str): Statut de signature ('oui' ou 'non').
-
-       Access:
-           Rôles requis : commercial, gestion
-
-       Effets:
-           Enregistre le contrat dans la base de données avec la date de signature si applicable.
-       """
+    """Crée un contrat pour un client donné (mode interactif avec Click)."""
     user = get_current_user()
 
     contract = Contract(
@@ -63,21 +37,7 @@ def create_contract(client_id, amount_total, amount_remaining, signed):
 
 
 def update_contract(contract_id, amount_total, amount_remaining, signed):
-    """
-      Met à jour les informations d'un contrat existant.
-
-      Args:
-          contract_id (int): ID du contrat à modifier.
-          amount_total (float, optional): Nouveau montant total.
-          amount_remaining (float, optional): Nouveau montant restant.
-          signed (str, optional): Statut de signature ('oui' ou 'non').
-
-      Access:
-          Rôles requis : commercial, gestion
-
-      Effets:
-          Modifie le contrat si l'utilisateur a les droits. Met à jour la date de signature si applicable.
-      """
+    """Met à jour les informations d'un contrat existant."""
     contract = session.query(Contract).filter_by(id=contract_id).first()
 
     if not contract:
@@ -116,34 +76,48 @@ def update_contract(contract_id, amount_total, amount_remaining, signed):
     click.echo("Contrat mis à jour avec succès.")
 
 
-@require_role("commercial", "gestion", "support")
 def list_contracts():
     """
-       Affiche la liste de tous les contrats.
+    Affiche la liste de tous les contrats avec les champs demandés.
+    """
+    contracts = (
+        session.query(Contract, Client, User)
+        .join(Client, Contract.client_id == Client.id)
+        .join(User, Contract.sales_contact_id == User.id)
+        .all()
+    )
 
-       Access:
-           Rôles requis : commercial, gestion, support
+    for contract, client, commercial in contracts:
+        click.echo(
+            f"[{contract.id}] "
+            f"Client: {client.name} ({client.email}) | "
+            f"Commercial: {commercial.name} | "
+            f"Montant total: {contract.amount_total} | "
+            f"Restant: {contract.amount_remaining} | "
+            f"Date création: {contract.created_date.strftime('%Y-%m-%d')} | "
+            f"Signé: {'Oui' if contract.signed else 'Non'}"
+        )
 
-       Effets:
-           Affiche les informations principales de chaque contrat existant.
-       """
-    contracts = session.query(Contract).all()
 
-    for c in contracts:
-        click.echo(f"[{c.id}] Client ID: {c.client_id}, Montant: {c.amount_total}, Restant: {c.amount_remaining}, Signé: {c.signed}")
-
-
-@require_role("commercial")
 def list_unsigned_contracts():
     """
-      Affiche la liste des contrats non signés.
+    Affiche la liste des contrats non signés avec les champs demandés.
+    """
+    contracts = (
+        session.query(Contract, Client, User)
+            .join(Client, Contract.client_id == Client.id)
+            .join(User, Contract.sales_contact_id == User.id)
+            .filter(Contract.signed == False)
+            .all()
+    )
 
-      Access:
-          Rôle requis : commercial
-
-      Effets:
-          Affiche les contrats dont le champ `signed` est à False.
-      """
-    contracts = session.query(Contract).filter_by(signed=False).all()
-    for c in contracts:
-        click.echo(f"[{c.id}] Client ID: {c.client_id}, Montant: {c.amount_total}, Restant: {c.amount_remaining}")
+    for contract, client, commercial in contracts:
+        click.echo(
+            f"[{contract.id}] "
+            f"Client: {client.name} ({client.email}) | "
+            f"Commercial: {commercial.name} | "
+            f"Montant total: {contract.amount_total} | "
+            f"Restant: {contract.amount_remaining} | "
+            f"Date création: {contract.created_date.strftime('%Y-%m-%d')} | "
+            f"Signé: {'Oui' if contract.signed else 'Non'}"
+        )

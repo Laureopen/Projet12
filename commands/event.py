@@ -7,7 +7,7 @@ from controllers.event_controller import (
     update_my_event,
     list_events,
     list_unassigned_events,
-    list_my_events
+    list_my_events, delete_event
 )
 from utils.auth_utils import require_role
 
@@ -48,34 +48,47 @@ def assign_support_cmd(event_id, support_email):
 
 
 @click.command("update-event")
-@click.option('--event-id', type=int, prompt="ID de l’événement à modifier", help="ID de l'événement")
 @click.option('--date-start', default=None, help="Nouvelle date de début (YYYY-MM-DD HH:MM)")
 @click.option('--date-end', default=None, help="Nouvelle date de fin (YYYY-MM-DD HH:MM)")
 @click.option('--location', default=None, help="Nouveau lieu")
 @click.option('--attendees', default=None, type=int, help="Nombre de participants")
 @click.option('--notes', default=None, help="Notes")
 @require_role("support")
-def update_my_event_cmd(event_id, date_start, date_end, location, attendees, notes):
+def update_my_event_cmd(date_start, date_end, location, attendees, notes):
     """Mettre à jour un événement"""
+    list_events()
+    event_id = click.prompt("\n\nID de l'événement à modifier", type=int)
     update_my_event(event_id, date_start, date_end, location, attendees, notes)
 
 
 @event_cli.command("list")
+@require_role("commercial", "gestion", "support")
 def list_events_cmd():
     """Lister tous les événements"""
     list_events()
 
 
 @event_cli.command("list-unassigned")
+@require_role("gestion")
 def list_unassigned_events_cmd():
     """Lister les événements sans support assigné"""
     list_unassigned_events()
 
 
 @event_cli.command("list-my-events")
+@require_role("support")
 def list_my_events_cmd():
     """Lister mes événements assignés"""
     list_my_events()
+
+
+@event_cli.command("delete")
+@require_role("commercial")
+def delete_event_cmd():
+    """Supprimer un évènement"""
+    list_events()
+    event_id = click.prompt("\n\nID de l'événement à supprimer", type=int)
+    delete_event(event_id)
 
 
 event_cli.add_command(create_event_cmd)

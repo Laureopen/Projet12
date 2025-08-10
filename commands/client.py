@@ -35,13 +35,18 @@ def list_clients_cmd():
 
 
 @click.command("update")
-@click.option('--client-id', prompt="ID du client à modifier")
+@click.option('--client-id', default=None, help="ID du client à modifier")
 @click.option('--name', default=None, help="Nom du client (laisser vide pour conserver l'actuel)")
 @click.option('--email', default=None, help="Email du client")
 @click.option('--phone', default=None, help="Téléphone du client")
 @click.option('--company', default=None, help="Entreprise du client")
 @require_role("commercial")
 def update_client_cmd(client_id, name, email, phone, company):
+    if client_id is None:
+        # Affiche la liste des clients avant de demander l'ID
+        list_clients()  # Ta fonction qui liste les clients, qui fait click.echo
+        client_id = click.prompt("\n\nID du client à modifier", type=int)
+
     update_client(client_id, name, email, phone, company)
 
 
