@@ -2,6 +2,7 @@ from sqlalchemy.orm import sessionmaker
 from models.contract import Contract
 from models.client import Client
 from models.user import User
+from utils import auth
 from utils.connection import engine
 from utils.auth import get_current_user, get_user_role
 import datetime
@@ -65,7 +66,7 @@ def create_contract(client_id, amount_total, amount_remaining, signed):
 
 
 @require_role("commercial", "gestion")
-def update_contract(contract_id, amount_total, amount_remaining, signed):
+def update_contract(contract_id, amount_total, amount_remaining, signed, db_session=None, current_user=None):
     """
     Met à jour les informations d'un contrat existant.
 
@@ -79,12 +80,13 @@ def update_contract(contract_id, amount_total, amount_remaining, signed):
         - Un commercial ne peut mettre à jour que ses propres contrats.
         - Les champs non fournis sont demandés en mode interactif avec Click.
     """
+    session = db_session or auth.session
     contract = session.query(Contract).filter_by(id=contract_id).first()
     if not contract:
         click.echo("Contrat introuvable.")
         return
 
-    current_user = get_current_user()
+    current_user = current_user or get_current_user()
 
     # Vérification que l'utilisateur a bien les attributs nécessaires
     if not hasattr(current_user, "department") or not hasattr(current_user, "id"):
@@ -164,7 +166,7 @@ def list_unsigned_contracts():
         session.query(Contract, Client, User)
         .join(Client, Contract.client_id == Client.id)
         .join(User, Contract.sales_contact_id == User.id)
-        .filter(Contract.signed == False)
+        .filter(Contract.signed.is_(False))
         .all()
     )
 

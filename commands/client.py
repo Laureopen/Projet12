@@ -13,7 +13,7 @@ from controllers.client_controller import (
 @click.group()
 def client_cli():
     """
-    Groupe de commandes CLI liées à la gestion des clients.
+   Commandes liées à la gestion des clients.
 
     Ce groupe permet de regrouper plusieurs sous-commandes :
     - create : créer un nouveau client
@@ -30,7 +30,7 @@ def client_cli():
 @click.option('--company', prompt="Entreprise")
 def create_client_cmd(name, email, phone, company):
     """
-    Commande CLI pour créer un nouveau client.
+    Commande pour créer un nouveau client.
 
     Args:
         name (str): Nom complet du client.
@@ -44,7 +44,7 @@ def create_client_cmd(name, email, phone, company):
 @click.command("list")
 def list_clients_cmd():
     """
-    Commande CLI pour afficher la liste de tous les clients.
+    Commande pour afficher la liste de tous les clients.
     """
     list_clients()
 
@@ -57,7 +57,7 @@ def list_clients_cmd():
 @click.option('--company', default=None, help="Entreprise du client")
 def update_client_cmd(client_id, name, email, phone, company):
     """
-    Commande CLI pour mettre à jour les informations d'un client existant.
+    Commande pour mettre à jour les informations d'un client existant.
 
     Args:
         client_id (int, optional): Identifiant du client à modifier.

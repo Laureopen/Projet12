@@ -7,6 +7,7 @@ from models.user import User
 from utils.connection import engine
 from datetime import datetime, timedelta
 
+
 # Clé secrète pour le JWT (à stocker idéalement en variable d'environnement !)
 SECRET_KEY = os.getenv("EPIC_SECRET_KEY", "change_me")
 ALGORITHM = "HS256"
@@ -24,10 +25,6 @@ def populate_departments():
     """
     # Import local pour éviter les problèmes d'import circulaire
     from models.department import Department
-    from models.user import User
-    from models.client import Client
-    from models.contract import Contract
-    from models.event import Event
 
     Session = sessionmaker(bind=engine)
     with Session() as session:

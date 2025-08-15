@@ -3,6 +3,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from .base import Base
 
+
 # Client
 class Client(Base):
     """
@@ -38,5 +39,3 @@ class Client(Base):
 
     def __repr__(self):
         return f"<Client(name={self.name}, sales_contact={self.sales_contact.name})>"
-
-

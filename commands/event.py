@@ -15,7 +15,7 @@ from controllers.event_controller import (
 @click.group()
 def event_cli():
     """
-    Groupe principal de commandes CLI liées aux événements.
+    Commandes liées aux événements.
 
     Ce groupe permet de gérer toutes les opérations concernant les événements :
     - create : création d'un événement
@@ -32,7 +32,7 @@ def event_cli():
 @event_cli.group()
 def event():
     """
-    Sous-groupe CLI pour la gestion des événements.
+    Sous-groupe pour la gestion des événements.
     Utile si l'on veut regrouper certaines commandes spécifiques sous un même namespace.
     """
     pass
@@ -48,7 +48,7 @@ def event():
 @click.option('--notes', prompt="Notes")
 def create_event_cmd(contract_id, name, date_start, date_end, location, attendees, notes):
     """
-    Commande CLI pour créer un nouvel événement.
+    Commande pour créer un nouvel événement.
 
     Args:
         contract_id (int): ID du contrat lié à l'événement.
@@ -67,7 +67,7 @@ def create_event_cmd(contract_id, name, date_start, date_end, location, attendee
 @click.option('--support-email', prompt="Email du support à assigner")
 def assign_support_cmd(event_id, support_email):
     """
-    Commande CLI pour affecter un événement à un membre du support.
+    Commande pour affecter un événement à un membre du support.
 
     Args:
         event_id (int): Identifiant de l'événement.
@@ -84,7 +84,7 @@ def assign_support_cmd(event_id, support_email):
 @click.option('--notes', default=None, help="Notes")
 def update_my_event_cmd(date_start, date_end, location, attendees, notes):
     """
-    Commande CLI pour mettre à jour un événement assigné à l'utilisateur courant.
+    Commande pour mettre à jour un événement assigné à l'utilisateur courant.
 
     Args:
         date_start (str, optional): Nouvelle date de début.
@@ -103,7 +103,7 @@ def update_my_event_cmd(date_start, date_end, location, attendees, notes):
 @event_cli.command("list")
 def list_events_cmd():
     """
-    Commande CLI pour afficher tous les événements.
+    Commande  pour afficher tous les événements.
     """
     list_events()
 
@@ -111,7 +111,7 @@ def list_events_cmd():
 @event_cli.command("list-unassigned")
 def list_unassigned_events_cmd():
     """
-    Commande CLI pour afficher les événements qui n'ont pas encore de membre du support assigné.
+    Commande pour afficher les événements qui n'ont pas encore de membre du support assigné.
     """
     list_unassigned_events()
 
@@ -119,7 +119,7 @@ def list_unassigned_events_cmd():
 @event_cli.command("list-my-events")
 def list_my_events_cmd():
     """
-    Commande CLI pour afficher uniquement les événements assignés à l'utilisateur courant.
+    Commande  pour afficher uniquement les événements assignés à l'utilisateur courant.
     """
     list_my_events()
 
@@ -127,7 +127,7 @@ def list_my_events_cmd():
 @event_cli.command("delete")
 def delete_event_cmd():
     """
-    Commande CLI pour supprimer un événement existant.
+    Commande pour supprimer un événement existant.
     L'utilisateur doit sélectionner l'ID dans la liste affichée.
     """
     # Affiche tous les événements pour aider au choix
@@ -144,3 +144,4 @@ event_cli.add_command(update_my_event_cmd)
 event_cli.add_command(list_events_cmd)
 event_cli.add_command(list_unassigned_events_cmd)
 event_cli.add_command(list_my_events_cmd)
+event_cli.add_command(delete_event_cmd)

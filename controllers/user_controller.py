@@ -103,7 +103,8 @@ def update_user(email, name, password, department_id):
     if name is None:
         name = click.prompt("Nom complet", default=user.name)
     if password is None:
-        password = click.prompt("Mot de passe", hide_input=True, confirmation_prompt=True, default="", show_default=False)
+        password = click.prompt("Mot de passe", hide_input=True, confirmation_prompt=True,
+                                default="", show_default=False)
         if password.strip() == "":
             password = None
     if department_id is None:

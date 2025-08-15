@@ -1,36 +1,38 @@
-from utils.auth import get_current_user, get_user_role
+from utils.auth import get_current_user
 
 
 def require_role(*allowed_roles):
     """
-    Décorateur qui restreint l'accès à une fonction aux utilisateurs ayant un rôle spécifique.
-
-    Args:
-        *allowed_roles (str): Liste des rôles autorisés à exécuter la fonction décorée.
-
-    Returns:
-        function: La fonction décorée qui vérifie le rôle avant exécution.
-
-    Exemple:
-        @require_role("admin", "gestion")
-        def ma_fonction():
-            pass
+    Décorateur qui vérifie le rôle de l'utilisateur avant exécution.
+    Lève une exception si l'accès est refusé.
     """
 
     def decorator(func):
         def wrapper(*args, **kwargs):
-            # Récupère l'utilisateur courant à partir du token stocké
-            user = get_current_user()
-            # Obtient le rôle (nom du département) de l'utilisateur
-            role = get_user_role(user)
+            try:
+                # Récupère l'utilisateur courant
+                current_user = kwargs.get('current_user') or get_current_user()
 
-            # Vérifie si le rôle de l'utilisateur est autorisé
-            if role not in allowed_roles:
-                print(f"Accès refusé. Rôle requis : {', '.join(allowed_roles)}")
-                return
+                if not current_user:
+                    raise PermissionError("Utilisateur non authentifié")
 
-            # Exécute la fonction d'origine si l'accès est autorisé
-            return func(*args, **kwargs)
+                # Vérifie si l'utilisateur a le département attendu
+                if not hasattr(current_user, 'department') or not current_user.department:
+                    raise PermissionError("L'utilisateur n'a pas de département défini")
+
+                # Normalise les noms de rôles (enlève espaces et met en minuscule)
+                user_role = current_user.department.name.strip().lower()
+                allowed = {role.strip().lower() for role in allowed_roles}
+
+                if user_role not in allowed:
+                    required_roles = " ou ".join(allowed_roles)
+                    raise PermissionError(f"Accès refusé. Rôle(s) requis : {required_roles}")
+
+                return func(*args, **kwargs)
+
+            except Exception as e:
+                print(f"Erreur d'autorisation : {str(e)}")
+                raise  # Relance l'exception pour les tests
 
         return wrapper
 

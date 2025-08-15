@@ -13,7 +13,7 @@ from controllers.contract_controller import (
 @click.group()
 def contract_cli():
     """
-    Groupe principal de commandes CLI liées aux contrats.
+     Commandes liées aux contrats.
 
     Ce groupe regroupe toutes les commandes relatives aux contrats clients :
     - create : créer un contrat
@@ -53,7 +53,7 @@ def contract():
 )
 def create_contract_cmd(client_id, amount_total, amount_remaining, signed):
     """
-    Commande CLI pour créer un nouveau contrat.
+    Commande pour créer un nouveau contrat.
 
     Args:
         client_id (int): Identifiant du client (validation via `validate_client_id`).
@@ -73,7 +73,7 @@ def create_contract_cmd(client_id, amount_total, amount_remaining, signed):
               default=None, help="Statut de signature du contrat ('oui' ou 'non')")
 def update_contract_cmd(amount_total, amount_remaining, signed):
     """
-    Commande CLI pour mettre à jour un contrat existant.
+    Commande pour mettre à jour un contrat existant.
 
     Args:
         amount_total (float, optional): Nouveau montant total.
@@ -90,7 +90,7 @@ def update_contract_cmd(amount_total, amount_remaining, signed):
 @contract_cli.command("list")
 def list_contracts_cmd():
     """
-    Commande CLI pour afficher tous les contrats existants.
+    Commande pour afficher tous les contrats existants.
     """
     list_contracts()
 
@@ -98,7 +98,7 @@ def list_contracts_cmd():
 @contract_cli.command("unsigned")
 def list_unsigned_contracts_cmd():
     """
-    Commande CLI pour afficher uniquement les contrats non signés.
+    Commande pour afficher uniquement les contrats non signés.
     """
     list_unsigned_contracts()
 

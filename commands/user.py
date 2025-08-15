@@ -11,7 +11,7 @@ from controllers.user_controller import (
 @click.group()
 def user_cli():
     """
-    Groupe principal de commandes CLI liées aux utilisateurs.
+    Commandes liées aux utilisateurs.
 
     Ce groupe permet :
     - la création d'un utilisateur
@@ -26,7 +26,7 @@ def user_cli():
 @click.option("--email", prompt="Email", help="Adresse email")
 def create_user_cmd(name, email):
     """
-    Commande CLI pour créer un nouvel utilisateur.
+    Commande pour créer un nouvel utilisateur.
 
     Args:
         name (str): Nom complet de l'utilisateur.
@@ -43,7 +43,7 @@ def create_user_cmd(name, email):
 @click.option("--department-id", type=int, help="Nouvel identifiant du département")
 def update_user_cmd(email, name, password, department_id):
     """
-    Commande CLI pour mettre à jour les informations d'un utilisateur existant.
+    Commande pour mettre à jour les informations d'un utilisateur existant.
 
     Args:
         email (str): Email de l'utilisateur à modifier.
@@ -60,7 +60,7 @@ def update_user_cmd(email, name, password, department_id):
 @click.confirmation_option(prompt="Êtes-vous sûr de vouloir supprimer cet utilisateur ?")
 def delete_user_cmd(email):
     """
-    Commande CLI pour supprimer un utilisateur.
+    Commande pour supprimer un utilisateur.
 
     Args:
         email (str): Adresse email de l'utilisateur à supprimer.

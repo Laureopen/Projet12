@@ -2,6 +2,7 @@ import click
 import re
 from sqlalchemy.orm import sessionmaker
 from models.client import Client
+from utils import auth
 from utils.connection import engine
 from utils.auth import get_current_user
 from utils.auth_utils import require_role
@@ -119,7 +120,7 @@ def list_clients():
 
 
 @require_role("commercial")
-def update_client(client_id, name, email, phone, company):
+def update_client(client_id, name, email, phone, company, db_session=None, current_user=None):
     """
     Met à jour les informations d'un client existant.
 
@@ -129,11 +130,16 @@ def update_client(client_id, name, email, phone, company):
         email (str | None): Nouvel email (ou None pour garder l'existant).
         phone (str | None): Nouveau téléphone (ou None pour garder l'existant).
         company (str | None): Nouvelle entreprise (ou None pour garder l'existant).
+        session (Session | None): Session SQLAlchemy à utiliser pour la mise à jour.
+            Si None, la session globale (prod) sera utilisée.
 
     Notes:
         - Un commercial ne peut mettre à jour que ses propres clients.
         - Les champs non fournis sont demandés en mode interactif avec Click.
     """
+
+    session = db_session if db_session is not None else auth.session
+
     client = session.query(Client).filter_by(id=client_id).first()
 
     if not client:
@@ -146,7 +152,7 @@ def update_client(client_id, name, email, phone, company):
     phone = phone or click.prompt("Téléphone", default=client.phone)
     company = company or click.prompt("Entreprise", default=client.company)
 
-    current_user = get_current_user()
+    current_user = current_user or get_current_user()
 
     # Vérification : un commercial ne peut modifier que ses propres clients
     if client.sales_contact_id != current_user.id:
