@@ -1,4 +1,3 @@
-import click
 from datetime import datetime
 from sqlalchemy.orm import sessionmaker, joinedload
 from models.event import Event
@@ -36,33 +35,27 @@ def create_event(contract_id, name, date_start, date_end, location, attendees, n
     contract = session.query(Contract).filter_by(id=contract_id).first()
 
     if not contract:
-        click.echo("Contrat introuvable.")
-        return
+        raise Exception("Contrat introuvable.")
 
     if not contract.signed:
-        click.echo("Le contrat n’est pas signé. Impossible de créer un événement.")
-        return
+        raise Exception("Le contrat n'est pas signé. Impossible de créer un événement.")
 
     if contract.sales_contact_id != user.id:
-        click.echo("Vous ne pouvez créer un événement que pour vos propres contrats.")
-        return
+        raise Exception("Vous ne pouvez créer un événement que pour vos propres contrats.")
 
     try:
         date_start_obj = datetime.strptime(date_start, "%Y-%m-%d %H:%M")
     except ValueError:
-        click.echo("Format de date de début invalide.")
-        return
+        raise Exception("Format de date de début invalide.")
 
     try:
         date_end_obj = datetime.strptime(date_end, "%Y-%m-%d %H:%M")
     except ValueError:
-        click.echo("Format de date de fin invalide.")
-        return
+        raise Exception("Format de date de fin invalide.")
 
     # Vérification de la cohérence temporelle
     if date_end_obj <= date_start_obj:
-        click.echo("La date de fin doit être postérieure à la date de début.")
-        return
+        raise Exception("La date de fin doit être postérieure à la date de début.")
 
     # Création et enregistrement de l'événement
     event = Event(
@@ -76,7 +69,7 @@ def create_event(contract_id, name, date_start, date_end, location, attendees, n
     )
     session.add(event)
     session.commit()
-    click.echo("Événement créé avec succès.")
+    return "Événement créé avec succès."
 
 
 @require_role("commercial")
@@ -90,22 +83,19 @@ def delete_event(event_id):
     current_user = get_current_user()
 
     if get_user_role(current_user) != "commercial":
-        click.echo("Vous n'avez pas les droits pour supprimer un événement.")
-        return
+        raise Exception("Vous n'avez pas les droits pour supprimer un événement.")
 
     # Chargement de l'événement avec le contrat associé
     event = session.query(Event).options(joinedload(Event.contract)).filter_by(id=event_id).first()
     if not event:
-        click.echo("Événement introuvable.")
-        return
+        raise Exception("Événement introuvable.")
 
     if event.contract.sales_contact_id != current_user.id:
-        click.echo("Vous ne pouvez supprimer que les événements liés à vos propres contrats.")
-        return
+        raise Exception("Vous ne pouvez supprimer que les événements liés à vos propres contrats.")
 
     session.delete(event)
     session.commit()
-    click.echo(f"Événement ID {event_id} supprimé avec succès.")
+    return f"Événement ID {event_id} supprimé avec succès."
 
 
 @require_role("gestion")
@@ -119,8 +109,7 @@ def assign_support(event_id, support_email):
     """
     event = session.query(Event).filter_by(id=event_id).first()
     if not event:
-        click.echo("Événement introuvable.")
-        return
+        raise Exception("Événement introuvable.")
 
     # Recherche de l'utilisateur dans le département "support"
     support_user = session.query(User).filter(
@@ -128,20 +117,17 @@ def assign_support(event_id, support_email):
         User.department.has(name="support")
     ).first()
     if not support_user:
-        click.echo("Utilisateur support introuvable.")
-        return
+        raise Exception("Utilisateur support introuvable.")
 
     event.support_contact_id = support_user.id
     session.commit()
-    click.echo(f"Support {support_user.name} assigné à l’événement.")
+    return f"Support {support_user.name} assigné à l'événement."
 
 
 @require_role("support")
-def update_my_event(event_id, date_start, date_end, location, attendees, notes):
+def update_my_event(event_id, date_start=None, date_end=None, location=None, attendees=None, notes=None):
     """
     Met à jour un événement assigné au support connecté.
-
-    Les valeurs non fournies sont demandées de manière interactive.
 
     Args:
         event_id (int): ID de l'événement à modifier.
@@ -154,93 +140,175 @@ def update_my_event(event_id, date_start, date_end, location, attendees, notes):
     current_user = get_current_user()
 
     if not hasattr(current_user, "id"):
-        click.echo("Erreur : utilisateur invalide (ID manquant).")
-        return
+        raise Exception("Erreur : utilisateur invalide (ID manquant).")
 
     event = session.query(Event).filter_by(id=event_id).first()
 
     if not event or event.support_contact_id != current_user.id:
-        click.echo("Événement introuvable ou non assigné à vous.")
-        return
-
-    # Demande interactive si paramètres absents
-    if date_start is None:
-        default_start = event.date_start.strftime("%Y-%m-%d %H:%M") if event.date_start else ""
-        date_start = click.prompt("Date de début (YYYY-MM-DD HH:MM)", default=default_start)
-
-    if date_end is None:
-        default_end = event.date_end.strftime("%Y-%m-%d %H:%M") if event.date_end else ""
-        date_end = click.prompt("Date de fin (YYYY-MM-DD HH:MM)", default=default_end)
-
-    if location is None:
-        location = click.prompt("Lieu", default=event.location)
-
-    if attendees is None:
-        attendees = click.prompt("Nombre de participants", default=event.attendees, type=int)
-
-    if notes is None:
-        notes = click.prompt("Notes", default=event.notes or "")
+        raise Exception("Événement introuvable ou non assigné à vous.")
 
     try:
-        event.date_start = datetime.strptime(date_start, "%Y-%m-%d %H:%M")
-        event.date_end = datetime.strptime(date_end, "%Y-%m-%d %H:%M")
-        event.location = location
-        event.attendees = attendees
-        event.notes = notes
+        if date_start is not None:
+            event.date_start = datetime.strptime(date_start, "%Y-%m-%d %H:%M")
+        if date_end is not None:
+            event.date_end = datetime.strptime(date_end, "%Y-%m-%d %H:%M")
+        if location is not None:
+            event.location = location
+        if attendees is not None:
+            event.attendees = attendees
+        if notes is not None:
+            event.notes = notes
 
         session.commit()
-        click.echo("Événement mis à jour avec succès.")
+        return "Événement mis à jour avec succès."
     except ValueError:
-        click.echo("Erreur : format de date invalide. Utilisez YYYY-MM-DD HH:MM.")
+        raise Exception("Erreur : format de date invalide. Utilisez YYYY-MM-DD HH:MM.")
     except Exception as e:
-        click.echo(f"Erreur lors de la mise à jour : {e}")
+        raise Exception(f"Erreur lors de la mise à jour : {e}")
 
 
 @require_role("commercial", "gestion", "support")
 def list_events():
     """
-    Liste tous les événements, quel que soit le rôle de l'utilisateur.
+    Retourne la liste de tous les événements sous forme de dictionnaire.
     """
-    events = session.query(Event).all()
-    if not events:
-        click.echo("Aucun événement trouvé.")
-        return
-    for event in events:
-        click.echo(
-            f"ID: {event.id}, Nom: {event.name}, Date: {event.date_start}, "
-            f"Lieu: {event.location}, Participants: {event.attendees}, "
-            f"Support assigné: {event.support_contact_id}"
-        )
+    try:
+        events = session.query(Event).all()
+        if not events:
+            raise Exception("Aucun événement trouvé.")
+
+        events_dict = {}
+        for event in events:
+            events_dict[event.id] = {
+                "id": event.id,
+                "name": event.name,
+                "date_start": event.date_start.strftime("%Y-%m-%d %H:%M"),
+                "date_end": event.date_end.strftime("%Y-%m-%d %H:%M"),
+                "location": event.location,
+                "attendees": event.attendees,
+                "notes": event.notes or "",
+                "support_contact_id": event.support_contact_id
+            }
+
+        return events_dict
+
+    except Exception as e:
+        raise Exception(f"Erreur lors de la récupération des événements : {e}")
 
 
 @require_role("gestion")
 def list_unassigned_events():
     """
-    Liste tous les événements n'ayant pas encore de support assigné.
+    Retourne la liste des événements non assignés sous forme de dictionnaire.
     """
-    events = session.query(Event).filter_by(support_contact_id=None).all()
-    if not events:
-        click.echo("Aucun événement non assigné trouvé.")
-        return
-    for event in events:
-        click.echo(
-            f"ID: {event.id}, Nom: {event.name}, Date: {event.date_start}, "
-            f"Lieu: {event.location}, Participants: {event.attendees}"
-        )
+    try:
+        events = session.query(Event).filter_by(support_contact_id=None).all()
+        if not events:
+            raise Exception("Aucun événement non assigné trouvé.")
+
+        events_dict = {}
+        for event in events:
+            events_dict[event.id] = {
+                "id": event.id,
+                "name": event.name,
+                "date_start": event.date_start.strftime("%Y-%m-%d %H:%M"),
+                "date_end": event.date_end.strftime("%Y-%m-%d %H:%M"),
+                "location": event.location,
+                "attendees": event.attendees,
+                "notes": event.notes or ""
+            }
+
+        return events_dict
+
+    except Exception as e:
+        raise Exception(f"Erreur lors de la récupération des événements non assignés : {e}")
 
 
 @require_role("support")
 def list_my_events():
     """
-    Liste les événements assignés uniquement au support connecté.
+    Retourne la liste des événements assignés au support connecté sous forme de dictionnaire.
     """
-    user = get_current_user()
-    events = session.query(Event).filter_by(support_contact_id=user.id).all()
-    if not events:
-        click.echo("Vous n’avez aucun événement assigné.")
-        return
-    for event in events:
-        click.echo(
-            f"ID: {event.id}, Nom: {event.name}, Date: {event.date_start}, "
-            f"Lieu: {event.location}, Participants: {event.attendees}"
+    try:
+        user = get_current_user()
+        events = session.query(Event).filter_by(support_contact_id=user.id).all()
+        if not events:
+            raise Exception("Vous n'avez aucun événement assigné.")
+
+        events_dict = {}
+        for event in events:
+            events_dict[event.id] = {
+                "id": event.id,
+                "name": event.name,
+                "date_start": event.date_start.strftime("%Y-%m-%d %H:%M"),
+                "date_end": event.date_end.strftime("%Y-%m-%d %H:%M"),
+                "location": event.location,
+                "attendees": event.attendees,
+                "notes": event.notes or ""
+            }
+
+        return events_dict
+
+    except Exception as e:
+        raise Exception(f"Erreur lors de la récupération de vos événements : {e}")
+
+
+def list_signed_contracts():
+    """
+    Retourne la liste des contrats signés sous forme de dictionnaire.
+    """
+    try:
+        from models.client import Client
+
+        contracts = (
+            session.query(Contract, Client, User)
+                .join(Client, Contract.client_id == Client.id)
+                .join(User, Contract.sales_contact_id == User.id)
+                .filter(Contract.signed == True)
+                .all()
         )
+
+        if not contracts:
+            raise Exception("Aucun contrat signé trouvé.")
+
+        contracts_dict = {}
+        for contract, client, commercial in contracts:
+            contracts_dict[contract.id] = {
+                "id": contract.id,
+                "client_name": client.name,
+                "client_email": client.email,
+                "commercial_name": commercial.name,
+                "amount_total": contract.amount_total,
+                "signed_date": contract.signed_date.strftime('%Y-%m-%d') if contract.signed_date else "Non défini"
+            }
+
+        return contracts_dict
+
+    except Exception as e:
+        raise Exception(f"Erreur lors de la récupération des contrats signés : {e}")
+
+
+def list_support_users():
+    """
+    Retourne la liste des utilisateurs du support sous forme de dictionnaire.
+    """
+    try:
+        support_users = session.query(User).filter(
+            User.department.has(name="support")
+        ).all()
+
+        if not support_users:
+            raise Exception("Aucun utilisateur support trouvé.")
+
+        users_dict = {}
+        for user in support_users:
+            users_dict[user.email] = {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email
+            }
+
+        return users_dict
+
+    except Exception as e:
+        raise Exception(f"Erreur lors de la récupération des utilisateurs support : {e}")

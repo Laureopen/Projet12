@@ -5,9 +5,9 @@ from controllers.contract_controller import (
     create_contract,
     update_contract,
     list_contracts,
-    list_unsigned_contracts,
-    validate_client_id
+    list_unsigned_contracts, delete_contract
 )
+from controllers.client_controller import list_clients
 
 
 @click.group()
@@ -28,40 +28,61 @@ def contract_cli():
 def contract():
     """
     Sous-groupe CLI pour la gestion des contrats.
-    Utile pour organiser logiquement les commandes lorsqu’il y a plusieurs sous-catégories.
+    Utile pour organiser logiquement les commandes lorsqu'il y a plusieurs sous-catégories.
     """
     pass
 
 
 @click.command("create")
-@click.option(
-    '--client-id',
-    type=int,
-    prompt="ID du client",
-    callback=validate_client_id,
-    help="ID du client lié au contrat"
-)
-@click.option('--amount-total', type=float, prompt="Montant total", help="Montant total du contrat")
-@click.option('--amount-remaining', type=float, prompt="Montant restant", help="Montant restant à payer")
+@click.option('--amount-total', type=float, help="Montant total du contrat")
+@click.option('--amount-remaining', type=float, help="Montant restant à payer")
 @click.option(
     '--signed',
     type=click.Choice(['oui', 'non'], case_sensitive=False),
-    prompt="Le contrat est-il signé ? (oui/non)",
-    default="non",
-    show_default=True,
     help="Statut de signature du contrat"
 )
-def create_contract_cmd(client_id, amount_total, amount_remaining, signed):
+def create_contract_cmd(amount_total, amount_remaining, signed):
     """
     Commande pour créer un nouveau contrat.
 
     Args:
-        client_id (int): Identifiant du client (validation via `validate_client_id`).
         amount_total (float): Montant total du contrat.
         amount_remaining (float): Montant restant dû sur le contrat.
         signed (str): Statut de signature ('oui' ou 'non').
     """
-    create_contract(client_id, amount_total, amount_remaining, signed)
+    try:
+        # Affiche la liste des clients
+        clients_data = list_clients()
+
+        lines = [f"{c['id']} | {c['name']} ({c['email']}) | Téléphone: {c['phone']} | "
+                 f"Entreprise: {c['company']} | Commercial: {c['sales_contact_name']}"
+                 for c in clients_data.values()]
+        message = "\n".join(lines)
+        click.echo(message)
+
+        client_id = click.prompt("\nID du client", type=int)
+
+        # Validation du client
+        if client_id not in clients_data:
+            click.echo("Client non trouvé.")
+            return
+
+        # Prompts pour les autres champs
+        if amount_total is None:
+            amount_total = click.prompt("Montant total", type=float)
+
+        if amount_remaining is None:
+            amount_remaining = click.prompt("Montant restant", type=float)
+
+        if signed is None:
+            signed = click.prompt("Le contrat est-il signé ? (oui/non)",
+                                  type=click.Choice(['oui', 'non'], case_sensitive=False),
+                                  default="non", show_default=True)
+
+        result = create_contract(client_id, amount_total, amount_remaining, signed)
+        click.echo(result)
+    except Exception as e:
+        click.echo(f"Erreur lors de la création : {e}")
 
 
 @click.command("update")
@@ -80,11 +101,40 @@ def update_contract_cmd(amount_total, amount_remaining, signed):
         amount_remaining (float, optional): Nouveau montant restant.
         signed (str, optional): Nouveau statut de signature ('oui' ou 'non').
     """
-    # Affiche la liste des contrats pour que l'utilisateur choisisse l'ID
-    list_contracts()
-    contract_id = click.prompt("\n\nID du contrat à modifier", type=int)
+    try:
+        # Affiche la liste des contrats
+        contracts_data = list_contracts()
 
-    update_contract(contract_id, amount_total, amount_remaining, signed)
+        lines = [f"{c['id']} | Client: {c['client_name']} ({c['client_email']}) | Commercial: {c['commercial_name']} | "
+                 f"Total: {c['amount_total']} | Restant: {c['amount_remaining']} | "
+                 f"Date: {c['created_date']} | Signé: {'Oui' if c['signed'] else 'Non'}"
+                 for c in contracts_data.values()]
+        message = "\n".join(lines)
+        click.echo(message)
+
+        contract_id = click.prompt("\nID du contrat à modifier", type=int)
+
+        if contract_id not in contracts_data:
+            click.echo("Contrat non trouvé.")
+            return
+
+        contract_defaults = contracts_data[contract_id]
+
+        if amount_total is None:
+            amount_total = click.prompt("Montant total", default=contract_defaults["amount_total"], type=float)
+
+        if amount_remaining is None:
+            amount_remaining = click.prompt("Montant restant", default=contract_defaults["amount_remaining"],
+                                            type=float)
+
+        if signed is None:
+            signed = click.prompt("Contrat signé ? (oui/non)", default="oui" if contract_defaults["signed"] else "non")
+
+        result = update_contract(contract_id, amount_total, amount_remaining, signed)
+        click.echo(result)
+
+    except Exception as e:
+        click.echo(f"Erreur lors de la mise à jour : {e}")
 
 
 @contract_cli.command("list")
@@ -92,7 +142,18 @@ def list_contracts_cmd():
     """
     Commande pour afficher tous les contrats existants.
     """
-    list_contracts()
+    try:
+        contracts_data = list_contracts()
+
+        lines = [f"[{c['id']}] Client: {c['client_name']} ({c['client_email']}) | Commercial: {c['commercial_name']} | "
+                 f"Montant total: {c['amount_total']} | Restant: {c['amount_remaining']} | "
+                 f"Date création: {c['created_date']} | Signé: {'Oui' if c['signed'] else 'Non'}"
+                 for c in contracts_data.values()]
+        message = "\n".join(lines)
+        click.echo(message)
+
+    except Exception as e:
+        click.echo(f"Erreur : {e}")
 
 
 @contract_cli.command("unsigned")
@@ -100,7 +161,53 @@ def list_unsigned_contracts_cmd():
     """
     Commande pour afficher uniquement les contrats non signés.
     """
-    list_unsigned_contracts()
+    try:
+        contracts_data = list_unsigned_contracts()
+
+        lines = [f"[{c['id']}] Client: {c['client_name']} ({c['client_email']}) | Commercial: {c['commercial_name']} | "
+                 f"Montant total: {c['amount_total']} | Restant: {c['amount_remaining']} | "
+                 f"Date création: {c['created_date']} | Signé: {'Oui' if c['signed'] else 'Non'}"
+                 for c in contracts_data.values()]
+        message = "\n".join(lines)
+        click.echo(message)
+
+    except Exception as e:
+        click.echo(f"Erreur : {e}")
+
+
+@click.command("delete")
+def delete_contract_cmd():
+    """
+    Commande pour supprimer un contrat (uniquement si aucun événement lié).
+    """
+    try:
+        # On affiche d'abord les contrats pour aider au choix
+        contracts_data = list_contracts()
+
+        lines = [f"[{c['id']}] Client: {c['client_name']} ({c['client_email']}) | "
+                 f"Commercial: {c['commercial_name']} | Total: {c['amount_total']} | "
+                 f"Restant: {c['amount_remaining']} | Date: {c['created_date']} | "
+                 f"Signé: {'Oui' if c['signed'] else 'Non'}"
+                 for c in contracts_data.values()]
+        message = "\n".join(lines)
+        click.echo(message)
+
+        contract_id = click.prompt("\nID du contrat à supprimer", type=int)
+
+        if contract_id not in contracts_data:
+            click.echo("Contrat non trouvé.")
+            return
+
+        confirm = click.confirm("Voulez-vous vraiment supprimer ce contrat ?", default=False)
+        if not confirm:
+            click.echo("Suppression annulée.")
+            return
+
+        result = delete_contract(contract_id)
+        click.echo(result)
+
+    except Exception as e:
+        click.echo(f"Erreur : {str(e)}")
 
 
 # Enregistrement des sous-commandes dans le groupe principal
@@ -108,3 +215,4 @@ contract_cli.add_command(create_contract_cmd)
 contract_cli.add_command(list_contracts_cmd)
 contract_cli.add_command(list_unsigned_contracts_cmd)
 contract_cli.add_command(update_contract_cmd)
+contract_cli.add_command(delete_contract_cmd)

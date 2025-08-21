@@ -1,5 +1,5 @@
-import click
 import re
+import sentry_sdk
 from sqlalchemy.orm import sessionmaker
 from models.client import Client
 from utils import auth
@@ -11,48 +11,44 @@ from utils.auth_utils import require_role
 session = sessionmaker(bind=engine)()
 
 
-def validate_email(ctx, param, value):
+def validate_email(email):
     """
     Valide le format d'une adresse email.
 
     Args:
-        ctx: Contexte Click (non utilisé directement, mais requis par Click).
-        param: Paramètre CLI lié (non utilisé directement).
-        value (str): Adresse email à valider.
+        email (str): Adresse email à valider.
 
     Returns:
         str: L'adresse email validée.
 
     Raises:
-        click.BadParameter: Si le format de l'email est invalide.
+        Exception: Si le format de l'email est invalide.
     """
     pattern = r"^[^@]+@[^@]+\.[^@]+$"  # Expression régulière simple pour un email basique
-    if not re.match(pattern, value):
-        raise click.BadParameter("Format d'email invalide.")
-    return value
+    if not re.match(pattern, email):
+        raise Exception("Format d'email invalide.")
+    return email
 
 
-def validate_phone(ctx, param, value):
+def validate_phone(phone):
     """
     Valide le format d'un numéro de téléphone.
 
     Args:
-        ctx: Contexte Click (non utilisé directement).
-        param: Paramètre CLI lié (non utilisé directement).
-        value (str): Numéro de téléphone à valider.
+        phone (str): Numéro de téléphone à valider.
 
     Returns:
         str: Le numéro de téléphone validé.
 
     Raises:
-        click.BadParameter: Si le format du téléphone est invalide.
+        Exception: Si le format du téléphone est invalide.
     """
     pattern = r"^\+?\d{10,15}$"  # Accepte un '+' optionnel suivi de 10 à 15 chiffres
-    if not re.match(pattern, value):
-        raise click.BadParameter(
+    if not re.match(pattern, phone):
+        raise Exception(
             "Numéro de téléphone invalide. Entrez entre 10 et 15 chiffres, avec éventuellement un '+'."
         )
-    return value
+    return phone
 
 
 @require_role("commercial")
@@ -66,57 +62,72 @@ def create_client(name, email, phone, company):
         phone (str): Numéro de téléphone.
         company (str): Nom de l'entreprise.
 
-    Notes:
-        - Le client est automatiquement assigné au commercial actuellement connecté.
+    Returns:
+        str: Message de succès.
+
+    Raises:
+        Exception: En cas d'erreur lors de la création.
     """
-    user = get_current_user()  # Récupération du commercial connecté
+    try:
+        # Validation des données
+        validate_email(email)
+        validate_phone(phone)
 
-    # Création de l'objet Client
-    client = Client(
-        name=name,
-        email=email,
-        phone=phone,
-        company=company,
-        sales_contact_id=user.id
-    )
+        user = get_current_user()  # Récupération du commercial connecté
 
-    # Enregistrement en base
-    session.add(client)
-    session.commit()
-    click.echo("Client créé avec succès.")
+        # Création de l'objet Client
+        client = Client(
+            name=name,
+            email=email,
+            phone=phone,
+            company=company,
+            sales_contact_id=user.id
+        )
+
+        # Enregistrement en base
+        session.add(client)
+        session.commit()
+
+        # Log pour Sentry
+        sentry_sdk.capture_message(f"Client créé : {email} par {user.email}")
+
+        return "Client créé avec succès."
+
+    except Exception as e:
+        raise Exception(f"Erreur lors de la création du client : {e}")
 
 
 @require_role("commercial", "gestion", "support")
 def list_clients():
     """
-    Affiche la liste des clients enregistrés avec leurs informations :
-    - ID
-    - Nom
-    - Email
-    - Téléphone
-    - Entreprise
-    - Commercial assigné
-    - Dates de création et de mise à jour
+    Retourne la liste des clients sous forme de dictionnaire.
     """
-    clients = session.query(Client).all()
+    try:
+        clients = session.query(Client).all()
+        if not clients:
+            raise Exception("Aucun client trouvé.")
 
-    if not clients:
-        click.echo("Aucun client trouvé.")
-        return
+        clients_dict = {}
+        for c in clients:
+            # Formatage des dates ou affichage "Date inconnue"
+            created_at_str = c.created_date.strftime("%d %B %Y") if c.created_date else "Date inconnue"
+            updated_at_str = c.updated_date.strftime("%d %B %Y") if c.updated_date else "Date inconnue"
+            sales_contact_name = c.sales_contact.name if c.sales_contact else "Aucun commercial assigné"
 
-    click.echo("Liste des clients :\n")
+            clients_dict[c.id] = {
+                "id": c.id,
+                "name": c.name,
+                "email": c.email,
+                "phone": c.phone,
+                "company": c.company,
+                "sales_contact_name": sales_contact_name,
+                "created_date": created_at_str,
+                "updated_date": updated_at_str
+            }
+        return clients_dict
 
-    for c in clients:
-        # Formatage des dates ou affichage "Date inconnue"
-        created_at_str = c.created_date.strftime("%d %B %Y") if c.created_date else "Date inconnue"
-        updated_at_str = c.updated_date.strftime("%d %B %Y") if c.updated_date else "Date inconnue"
-        sales_contact_name = c.sales_contact.name if c.sales_contact else "Aucun commercial assigné"
-
-        click.echo(
-            f"[{c.id}] Nom: {c.name} ({c.email}) | Téléphone: {c.phone} | "
-            f"Entreprise: {c.company} | Commercial: {sales_contact_name} | "
-            f"Créé le: {created_at_str} | Dernière MAJ: {updated_at_str}"
-        )
+    except Exception as e:
+        raise Exception(f"Erreur lors de la récupération des clients : {e}")
 
 
 @require_role("commercial")
@@ -126,52 +137,98 @@ def update_client(client_id, name, email, phone, company, db_session=None, curre
 
     Args:
         client_id (int): ID du client à mettre à jour.
-        name (str | None): Nouveau nom (ou None pour garder l'existant).
-        email (str | None): Nouvel email (ou None pour garder l'existant).
-        phone (str | None): Nouveau téléphone (ou None pour garder l'existant).
-        company (str | None): Nouvelle entreprise (ou None pour garder l'existant).
-        session (Session | None): Session SQLAlchemy à utiliser pour la mise à jour.
-            Si None, la session globale (prod) sera utilisée.
+        name (str): Nouveau nom.
+        email (str): Nouvel email.
+        phone (str): Nouveau téléphone.
+        company (str): Nouvelle entreprise.
+        db_session (Session | None): auth.session ou session de test
+        current_user (User | None): utilisateur de la session ou de test
 
-    Notes:
-        - Un commercial ne peut mettre à jour que ses propres clients.
-        - Les champs non fournis sont demandés en mode interactif avec Click.
+    Returns:
+        str: Message de succès.
+
+    Raises:
+        Exception: En cas d'erreur lors de la mise à jour.
     """
-
-    session = db_session if db_session is not None else auth.session
-
-    client = session.query(Client).filter_by(id=client_id).first()
-
-    if not client:
-        click.echo("Client non trouvé.")
-        return
-
-    # Saisie interactive si valeurs non fournies
-    name = name or click.prompt("Nom", default=client.name)
-    email = email or click.prompt("Email", default=client.email)
-    phone = phone or click.prompt("Téléphone", default=client.phone)
-    company = company or click.prompt("Entreprise", default=client.company)
-
-    current_user = current_user or get_current_user()
-
-    # Vérification : un commercial ne peut modifier que ses propres clients
-    if client.sales_contact_id != current_user.id:
-        click.echo("Vous ne pouvez modifier que vos propres clients.")
-        return
-
-    # Validation email et téléphone
     try:
-        email = validate_email(None, None, email)
-        phone = validate_phone(None, None, phone)
-    except click.BadParameter as e:
-        click.echo(f"Erreur : {e}")
-        return
+        session_to_use = db_session if db_session is not None else auth.session
 
-    # Mise à jour des champs
-    client.name = name
-    client.email = email
-    client.phone = phone
-    client.company = company
+        client = session_to_use.query(Client).filter_by(id=client_id).first()
 
-    session.commit()
-    click.echo("Client mis à jour avec succès.")
+        if not client:
+            raise Exception("Client non trouvé.")
+
+        current_user = current_user or get_current_user()
+
+        # Vérification : un commercial ne peut modifier que ses propres clients
+        if client.sales_contact_id != current_user.id:
+            raise Exception("Vous ne pouvez modifier que vos propres clients.")
+
+        # Validation email et téléphone
+        validate_email(email)
+        validate_phone(phone)
+
+        # Mise à jour des champs
+        client.name = name
+        client.email = email
+        client.phone = phone
+        client.company = company
+
+        session_to_use.commit()
+
+        # Log pour Sentry
+        sentry_sdk.capture_message(f"Client modifié : {client_id} par {current_user.email}")
+
+        return "Client mis à jour avec succès."
+
+    except Exception as e:
+        raise Exception(f"Erreur lors de la mise à jour du client : {e}")
+
+
+@require_role("commercial")
+def delete_client(client_id, db_session=None, current_user=None):
+    """
+    Supprime un client existant.
+
+    Args:
+        client_id (int): ID du client à supprimer.
+        db_session (Session | None): auth.session ou session de test
+        current_user (User | None): utilisateur de la session ou de test
+
+    Returns:
+        str: Message de succès.
+
+    Raises:
+        Exception: En cas d'erreur lors de la suppression.
+    """
+    try:
+        session_to_use = db_session if db_session is not None else auth.session
+
+        client = session_to_use.query(Client).filter_by(id=client_id).first()
+
+        if not client:
+            raise Exception("Client non trouvé.")
+
+        current_user = current_user or get_current_user()
+
+        # Vérification : un commercial ne peut supprimer que ses propres clients
+        if client.sales_contact_id != current_user.id:
+            raise Exception("Vous ne pouvez supprimer que vos propres clients.")
+
+        # Vérifie associations (contrats, événements, etc.)
+        if client.contracts or client.events:
+            raise Exception(
+                f"Impossible de supprimer le client '{client.name}' : "
+                "des contrats ou événements lui sont associés."
+            )
+
+        session_to_use.delete(client)
+        session_to_use.commit()
+
+        # Log pour Sentry
+        sentry_sdk.capture_message(f"Client supprimé : {client_id} par {current_user.email}")
+
+        return f"Client '{client.name}' supprimé avec succès."
+
+    except Exception as e:
+        raise Exception(f"Erreur lors de la suppression du client : {e}")

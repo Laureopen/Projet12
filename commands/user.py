@@ -4,8 +4,10 @@ import click
 from controllers.user_controller import (
     create_user,
     update_user,
-    delete_user
+    delete_user, list_departments, list_users
 )
+from models.department import Department
+from utils.auth import session
 
 
 @click.group()
@@ -22,50 +24,96 @@ def user_cli():
 
 
 @click.command("create-user")
-@click.option("--name", prompt="Nom complet", help="Nom complet de l'utilisateur")
-@click.option("--email", prompt="Email", help="Adresse email")
+@click.option("--name", type=str, prompt="Nom complet", help="Nom complet de l'utilisateur")
+@click.option("--email", type=str, prompt="Email", help="Adresse email")
 def create_user_cmd(name, email):
     """
-    Commande pour créer un nouvel utilisateur.
-
-    Args:
-        name (str): Nom complet de l'utilisateur.
-        email (str): Adresse email de l'utilisateur.
+    Commande CLI pour créer un nouvel utilisateur.
     """
-    create_user(name, email)
+    try:
+        # Affiche la liste des départements
+        departments = list_departments()
+        click.echo(departments)
+
+        dep_id = click.prompt("\nDépartement (ID)", type=int)
+        password = click.prompt("Mot de passe", type=str, hide_input=True, confirmation_prompt=True)
+
+        user = create_user(name, email, dep_id, password)
+        click.echo(user)
+    except Exception as e:
+        click.echo(f"Erreur lors de la création : {e}")
 
 
 @click.command("update-user")
-@click.option('--email', type=str, prompt="Email de l'utilisateur à modifier",
-              help="Adresse email de l'utilisateur à mettre à jour")
-@click.option("--name", help="Nouveau nom complet de l'utilisateur")
-@click.option("--password", help="Nouveau mot de passe")
-@click.option("--department-id", type=int, help="Nouvel identifiant du département")
-def update_user_cmd(email, name, password, department_id):
-    """
-    Commande pour mettre à jour les informations d'un utilisateur existant.
+@click.option("--name", type=str, default=None, help="Nouveau nom complet de l'utilisateur")
+@click.option("--password", type=str, default=None, help="Nouveau mot de passe de l'utilisateur")
+@click.option("--department-id", type=int, default=None, help="Nouvel identifiant du département")
+def update_user_cmd(name, password, department_id):
+    try:
+        # Affiche la liste des utilisateurs
+        users_data = list_users()
 
-    Args:
-        email (str): Email de l'utilisateur à modifier.
-        name (str, optional): Nouveau nom complet.
-        password (str, optional): Nouveau mot de passe.
-        department_id (int, optional): Nouvel identifiant de département.
-    """
-    update_user(email, name, password, department_id)
+        lines = [f"{u['id']} | {u['name']} | {u['email']} | Département : {u['department_name']}"
+                 for u in users_data.values()]
+        message = "\n".join(lines)
+        click.echo(message)
+
+        # Demande l'email après affichage
+        email = click.prompt("Email de l'utilisateur à modifier", type=str)
+
+        if email not in users_data:
+            click.echo("Utilisateur non trouvé.")
+            return
+
+        user_defaults = users_data[email]
+
+        if name is None:
+            name = click.prompt("Nom complet", type=str, default=user_defaults["name"])
+
+        if password is None:
+            password = click.prompt("Mot de passe", type=str, hide_input=True, confirmation_prompt=True, default="",
+                                    show_default=False)
+            if password.strip() == "":
+                password = None
+
+        if department_id is None:
+            click.echo("Départements disponibles :")
+            for dept in session.query(Department).all():
+                click.echo(f"{dept.id} - {dept.name}")
+            default_dep_id = next((d.id for d in session.query(Department).all()
+                                   if d.name == user_defaults["department_name"]), None)
+            department_id = click.prompt("Département (id)", type=int, default=default_dep_id)
+
+        user = update_user(email, name, password, department_id)
+        click.echo(user)
+    except Exception as e:
+        click.echo(f"Erreur lors de la mise à jour : {e}")
 
 
 @click.command("delete-user")
-@click.option('--email', type=str, prompt="Email de l'utilisateur à supprimer",
-              help="Adresse email de l'utilisateur à supprimer")
-@click.confirmation_option(prompt="Êtes-vous sûr de vouloir supprimer cet utilisateur ?")
-def delete_user_cmd(email):
+def delete_user_cmd():
     """
     Commande pour supprimer un utilisateur.
-
-    Args:
-        email (str): Adresse email de l'utilisateur à supprimer.
     """
-    delete_user(email)
+    try:
+        # Affiche la liste des utilisateurs
+        users_data = list_users()
+
+        lines = [f"{u['id']} | {u['name']} | {u['email']} | Département : {u['department_name']}"
+                 for u in users_data.values()]
+        message = "\n".join(lines)
+        click.echo(message)
+
+        # Demande l'email après affichage
+        email = click.prompt("Email de l'utilisateur à supprimer", type=str)
+
+        if not click.confirm(f"Êtes-vous sûr de vouloir supprimer l'utilisateur '{email}' ? Cette action est irréversible."):
+            click.echo("Suppression annulée.")
+            return
+
+        delete_user(email)
+    except Exception as e:
+        click.echo(f"Erreur lors de la suppression : {e}")
 
 
 # Enregistrement des commandes dans le groupe principal

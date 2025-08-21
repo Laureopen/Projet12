@@ -1,6 +1,7 @@
 from sqlalchemy.orm import sessionmaker
 from models.contract import Contract
 from models.client import Client
+from models.event import Event
 from models.user import User
 from utils import auth
 from utils.connection import engine
@@ -62,7 +63,7 @@ def create_contract(client_id, amount_total, amount_remaining, signed):
 
     session.add(contract)
     session.commit()
-    click.echo("Contrat créé avec succès.")
+    return "Contrat créé avec succès."
 
 
 @require_role("commercial", "gestion")
@@ -75,108 +76,141 @@ def update_contract(contract_id, amount_total, amount_remaining, signed, db_sess
         amount_total (float | None): Nouveau montant total (ou None pour conserver l'existant).
         amount_remaining (float | None): Nouveau montant restant (ou None pour conserver l'existant).
         signed (str | None): "oui" ou "non" (ou None pour conserver l'existant).
+        db_session (Session | None): auth.session ou session de test
+        current_user (User | None): utilisateur de la session ou de test
 
     Notes:
         - Un commercial ne peut mettre à jour que ses propres contrats.
-        - Les champs non fournis sont demandés en mode interactif avec Click.
     """
     session = db_session or auth.session
     contract = session.query(Contract).filter_by(id=contract_id).first()
     if not contract:
-        click.echo("Contrat introuvable.")
-        return
+        raise Exception("Contrat introuvable.")
 
     current_user = current_user or get_current_user()
 
     # Vérification que l'utilisateur a bien les attributs nécessaires
     if not hasattr(current_user, "department") or not hasattr(current_user, "id"):
-        click.echo("Erreur : utilisateur invalide (rôle ou ID manquant).")
-        return
+        raise Exception("Erreur : utilisateur invalide (rôle ou ID manquant).")
 
     # Un commercial ne peut modifier que ses propres contrats
     if get_user_role(current_user) == "commercial" and contract.sales_contact_id != current_user.id:
-        click.echo("Vous ne pouvez modifier que vos propres contrats.")
-        return
-
-    # Demande interactive des valeurs si elles ne sont pas fournies
-    if amount_total is None:
-        amount_total = click.prompt("Montant total", default=contract.amount_total, type=float)
-    if amount_remaining is None:
-        amount_remaining = click.prompt("Montant restant", default=contract.amount_remaining, type=float)
-    if signed is None:
-        signed = click.prompt("Contrat signé ? (oui/non)", default="oui" if contract.signed else "non")
+        raise Exception("Vous ne pouvez modifier que vos propres contrats.")
 
     # Mise à jour des champs
-    contract.amount_total = amount_total
-    contract.amount_remaining = amount_remaining
-    if signed.lower() == "oui":
-        contract.signed = True
-        contract.signed_date = datetime.datetime.now()
-    else:
-        contract.signed = False
-        contract.signed_date = None
+    if amount_total is not None:
+        contract.amount_total = amount_total
+    if amount_remaining is not None:
+        contract.amount_remaining = amount_remaining
+    if signed is not None:
+        if signed.lower() == "oui":
+            contract.signed = True
+            contract.signed_date = datetime.datetime.now()
+        else:
+            contract.signed = False
+            contract.signed_date = None
 
     session.commit()
-    click.echo("Contrat mis à jour avec succès.")
+    return "Contrat mis à jour avec succès."
 
 
 @require_role("commercial", "gestion", "support")
 def list_contracts():
     """
-    Affiche la liste de tous les contrats avec les informations :
-    - ID du contrat
-    - Nom et email du client
-    - Nom du commercial
-    - Montant total
-    - Montant restant
-    - Date de création
-    - Statut signé / non signé
+    Retourne la liste de tous les contrats sous forme de dictionnaire.
     """
-    contracts = (
-        session.query(Contract, Client, User)
-        .join(Client, Contract.client_id == Client.id)
-        .join(User, Contract.sales_contact_id == User.id)
-        .all()
-    )
-
-    for contract, client, commercial in contracts:
-        click.echo(
-            f"[{contract.id}] "
-            f"Client: {client.name} ({client.email}) | "
-            f"Commercial: {commercial.name} | "
-            f"Montant total: {contract.amount_total} | "
-            f"Restant: {contract.amount_remaining} | "
-            f"Date création: {contract.created_date.strftime('%Y-%m-%d')} | "
-            f"Signé: {'Oui' if contract.signed else 'Non'}"
+    try:
+        contracts = (
+            session.query(Contract, Client, User)
+            .join(Client, Contract.client_id == Client.id)
+            .join(User, Contract.sales_contact_id == User.id)
+            .all()
         )
+
+        if not contracts:
+            raise Exception("Aucun contrat trouvé.")
+
+        contracts_dict = {}
+        for contract, client, commercial in contracts:
+            contracts_dict[contract.id] = {
+                "id": contract.id,
+                "client_name": client.name,
+                "client_email": client.email,
+                "commercial_name": commercial.name,
+                "amount_total": contract.amount_total,
+                "amount_remaining": contract.amount_remaining,
+                "created_date": contract.created_date.strftime('%Y-%m-%d'),
+                "signed": contract.signed
+            }
+
+        return contracts_dict
+
+    except Exception as e:
+        raise Exception(f"Erreur lors de la récupération des contrats : {e}")
 
 
 @require_role("commercial", "gestion")
 def list_unsigned_contracts():
     """
-    Affiche la liste des contrats non signés avec les informations :
-    - ID du contrat
-    - Nom et email du client
-    - Nom du commercial
-    - Montant total
-    - Montant restant
-    - Date de création
+    Retourne la liste des contrats non signés sous forme de dictionnaire.
     """
-    contracts = (
-        session.query(Contract, Client, User)
-        .join(Client, Contract.client_id == Client.id)
-        .join(User, Contract.sales_contact_id == User.id)
-        .filter(Contract.signed.is_(False))
-        .all()
-    )
-
-    for contract, client, commercial in contracts:
-        click.echo(
-            f"[{contract.id}] "
-            f"Client: {client.name} ({client.email}) | "
-            f"Commercial: {commercial.name} | "
-            f"Montant total: {contract.amount_total} | "
-            f"Restant: {contract.amount_remaining} | "
-            f"Date création: {contract.created_date.strftime('%Y-%m-%d')} | "
-            f"Signé: {'Oui' if contract.signed else 'Non'}"
+    try:
+        contracts = (
+            session.query(Contract, Client, User)
+            .join(Client, Contract.client_id == Client.id)
+            .join(User, Contract.sales_contact_id == User.id)
+            .filter(Contract.signed.is_(False))
+            .all()
         )
+
+        if not contracts:
+            raise Exception("Aucun contrat non signé trouvé.")
+
+        contracts_dict = {}
+        for contract, client, commercial in contracts:
+            contracts_dict[contract.id] = {
+                "id": contract.id,
+                "client_name": client.name,
+                "client_email": client.email,
+                "commercial_name": commercial.name,
+                "amount_total": contract.amount_total,
+                "amount_remaining": contract.amount_remaining,
+                "created_date": contract.created_date.strftime('%Y-%m-%d'),
+                "signed": contract.signed
+            }
+
+        return contracts_dict
+
+    except Exception as e:
+        raise Exception(f"Erreur lors de la récupération des contrats non signés : {e}")
+
+
+@require_role("commercial", "gestion")
+def delete_contract(contract_id, db_session=None):
+    """
+    Supprime un contrat uniquement si aucun événement n'y est lié.
+
+    Args:
+        contract_id (int): ID du contrat à supprimer.
+        db_session: Session SQLAlchemy optionnelle (sinon session globale utilisée).
+
+    Returns:
+        dict: Message de succès.
+
+    Raises:
+        Exception: Si le contrat n'existe pas ou si des événements y sont liés.
+    """
+    session = db_session or auth.session
+
+    contract = session.query(Contract).filter_by(id=contract_id).first()
+    if not contract:
+        raise Exception("Contrat introuvable.")
+
+    # Vérifier si un événement est lié à ce contrat
+    event_linked = session.query(Event).filter_by(contract_id=contract_id).first()
+    if event_linked:
+        raise Exception("Impossible de supprimer ce contrat car des événements y sont liés.")
+
+    session.delete(contract)
+    session.commit()
+    return "Contrat supprimé avec succès."
