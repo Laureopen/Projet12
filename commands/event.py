@@ -283,7 +283,8 @@ def delete_event_cmd():
             return
 
         if not click.confirm(
-                f"Êtes-vous sûr de vouloir supprimer l'événement '{events_data[event_id]['name']}' ? Cette action est irréversible."):
+                f"Êtes-vous sûr de vouloir supprimer l'événement '"
+                f"{events_data[event_id]['name']}' ? Cette action est irréversible."):
             click.echo("Suppression annulée.")
             return
 

@@ -190,7 +190,8 @@ def delete_client_cmd():
 
         client_name = clients_data[client_id]["name"]
 
-        if not click.confirm(f"Êtes-vous sûr de vouloir supprimer le client '{client_name}' ? Cette action est irréversible."):
+        if not (click.confirm
+            (f"Êtes-vous sûr de vouloir supprimer le client '{client_name}' ? Cette action est irréversible.")):
             click.echo("Suppression annulée.")
             return
 

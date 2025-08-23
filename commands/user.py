@@ -107,7 +107,8 @@ def delete_user_cmd():
         # Demande l'email après affichage
         email = click.prompt("Email de l'utilisateur à supprimer", type=str)
 
-        if not click.confirm(f"Êtes-vous sûr de vouloir supprimer l'utilisateur '{email}' ? Cette action est irréversible."):
+        if not (click.confirm
+            (f"Êtes-vous sûr de vouloir supprimer l'utilisateur '{email}' ? Cette action est irréversible.")):
             click.echo("Suppression annulée.")
             return
 
