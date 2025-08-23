@@ -71,7 +71,8 @@ def client_cli():
 @click.command("create")
 @click.option('--name', type=str, prompt="Nom du client", help="Nom complet du client")
 @click.option('--email', type=str, prompt="Email", callback=validate_email, help="Adresse email du client")
-@click.option('--phone', type=str, prompt="Téléphone", callback=validate_phone, help="Numéro de téléphone du client")
+@click.option('--phone', type=str, prompt="Téléphone", callback=validate_phone,
+              help="Numéro de téléphone du client")
 @click.option('--company', type=str, prompt="Entreprise", help="Nom de l'entreprise")
 def create_client_cmd(name, email, phone, company):
     """
@@ -190,8 +191,10 @@ def delete_client_cmd():
 
         client_name = clients_data[client_id]["name"]
 
-        if not (click.confirm
-            (f"Êtes-vous sûr de vouloir supprimer le client '{client_name}' ? Cette action est irréversible.")):
+        if not click.confirm(
+                f"Êtes-vous sûr de vouloir supprimer le client '{client_name}' ? "
+                "Cette action est irréversible."
+        ):
             click.echo("Suppression annulée.")
             return
 

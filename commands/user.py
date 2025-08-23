@@ -71,8 +71,15 @@ def update_user_cmd(name, password, department_id):
             name = click.prompt("Nom complet", type=str, default=user_defaults["name"])
 
         if password is None:
-            password = click.prompt("Mot de passe", type=str, hide_input=True, confirmation_prompt=True, default="",
-                                    show_default=False)
+            password = click.prompt(
+                "Mot de passe",
+                type=str,
+                hide_input=True,
+                confirmation_prompt=True,
+                default="",
+                show_default=False
+            )
+
             if password.strip() == "":
                 password = None
 
@@ -107,8 +114,9 @@ def delete_user_cmd():
         # Demande l'email après affichage
         email = click.prompt("Email de l'utilisateur à supprimer", type=str)
 
-        if not (click.confirm
-            (f"Êtes-vous sûr de vouloir supprimer l'utilisateur '{email}' ? Cette action est irréversible.")):
+        if not click.confirm(
+                f"Êtes-vous sûr de vouloir supprimer l'utilisateur '{email}' ? Cette action est irréversible."
+        ):
             click.echo("Suppression annulée.")
             return
 

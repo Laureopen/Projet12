@@ -1,4 +1,3 @@
-
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from .base import Base
@@ -19,7 +18,8 @@ class User(Base):
             department (Department): Relation vers le département.
             clients (list[Client]): Liste des clients associés à l'utilisateur (en tant que commercial).
             contracts (list[Contract]): Liste des contrats associés à l'utilisateur (en tant que commercial).
-            supported_events (list[Event]): Liste des événements supportés par l'utilisateur (en tant que support).
+            supported_events (list[Event]): Liste des événements supportés par l'utilisateur
+            (en tant que support).
         """
     __tablename__ = "users"
 
@@ -33,8 +33,10 @@ class User(Base):
 
     # Relations : cascade via `backref` ou manuellement si nécessaire
     clients = relationship("Client", back_populates="sales_contact", foreign_keys="Client.sales_contact_id")
-    contracts = relationship("Contract", back_populates="sales_contact", foreign_keys="Contract.sales_contact_id")
-    supported_events = relationship("Event", back_populates="support_contact", foreign_keys="Event.support_contact_id")
+    contracts = relationship("Contract", back_populates="sales_contact",
+                             foreign_keys="Contract.sales_contact_id")
+    supported_events = relationship("Event", back_populates="support_contact",
+                                    foreign_keys="Event.support_contact_id")
 
     def __repr__(self):
         return f"<User(name={self.name}, role={self.department.name})>"

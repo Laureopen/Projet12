@@ -29,15 +29,15 @@ avec authentification, autorisations, et journalisation via Sentry.
 * Interface : click, rich
 * Journalisation : Sentry
 * Tests : pytest
-* Outils qualité : flake8, black
+* Outils qualité : flake8,
 
 # Installation
 ## Etape 1: Cloner le dépôt
     git clone https://github.com/Laureopen/Projet12.git
 ## Etape 2: Se mettre a la racine du projet
-    cd Projet12 puis ensuite cd '.\Epic Events\'
+    cd Projet12
 ## Etape 3: Pour créer et activer un environnement virtuel
-    python -m venv 
+    python -m virtual venv 
     source venv/bin/activate  # Mac/Linux
     venv\Scripts\activate     # Windows
 ## Etape 4: Installer les dépendances

@@ -262,10 +262,10 @@ def list_signed_contracts():
 
         contracts = (
             session.query(Contract, Client, User)
-                .join(Client, Contract.client_id == Client.id)
-                .join(User, Contract.sales_contact_id == User.id)
-                .filter(Contract.signed == True)
-                .all()
+            .join(Client, Contract.client_id == Client.id)
+            .join(User, Contract.sales_contact_id == User.id)
+            .filter(Contract.signed)
+            .all()
         )
 
         if not contracts:
@@ -279,7 +279,9 @@ def list_signed_contracts():
                 "client_email": client.email,
                 "commercial_name": commercial.name,
                 "amount_total": contract.amount_total,
-                "signed_date": contract.signed_date.strftime('%Y-%m-%d') if contract.signed_date else "Non défini"
+                "signed_date": (contract.signed_date.strftime('%Y-%m-%d')
+                                if contract.signed_date else "Non défini")
+
             }
 
         return contracts_dict

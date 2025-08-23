@@ -105,10 +105,16 @@ def update_contract_cmd(amount_total, amount_remaining, signed):
         # Affiche la liste des contrats
         contracts_data = list_contracts()
 
-        lines = [f"{c['id']} | Client: {c['client_name']} ({c['client_email']}) | Commercial: {c['commercial_name']} | "
-                 f"Total: {c['amount_total']} | Restant: {c['amount_remaining']} | "
-                 f"Date: {c['created_date']} | Signé: {'Oui' if c['signed'] else 'Non'}"
-                 for c in contracts_data.values()]
+        lines = [
+            (
+                f"{c['id']} | Client: {c['client_name']} ({c['client_email']}) | "
+                f"Commercial: {c['commercial_name']} | Total: {c['amount_total']} | "
+                f"Restant: {c['amount_remaining']} | Date: {c['created_date']} | "
+                f"Signé: {'Oui' if c['signed'] else 'Non'}"
+            )
+            for c in contracts_data.values()
+        ]
+
         message = "\n".join(lines)
         click.echo(message)
 
@@ -120,15 +126,20 @@ def update_contract_cmd(amount_total, amount_remaining, signed):
 
         contract_defaults = contracts_data[contract_id]
 
-        if amount_total is None:
-            amount_total = click.prompt("Montant total", default=contract_defaults["amount_total"], type=float)
+        amount_total = click.prompt(
+            "Montant total",
+            default=contract_defaults["amount_total"],
+            type=float
+        )
 
         if amount_remaining is None:
             amount_remaining = click.prompt("Montant restant", default=contract_defaults["amount_remaining"],
                                             type=float)
 
         if signed is None:
-            signed = click.prompt("Contrat signé ? (oui/non)", default="oui" if contract_defaults["signed"] else "non")
+            signed = click.prompt(
+                "Contrat signé ? (oui/non)",
+                default="oui" if contract_defaults["signed"] else "non")
 
         result = update_contract(contract_id, amount_total, amount_remaining, signed)
         click.echo(result)
@@ -145,10 +156,16 @@ def list_contracts_cmd():
     try:
         contracts_data = list_contracts()
 
-        lines = [f"[{c['id']}] Client: {c['client_name']} ({c['client_email']}) | Commercial: {c['commercial_name']} | "
-                 f"Montant total: {c['amount_total']} | Restant: {c['amount_remaining']} | "
-                 f"Date création: {c['created_date']} | Signé: {'Oui' if c['signed'] else 'Non'}"
-                 for c in contracts_data.values()]
+        lines = [
+            (
+                f"[{c['id']}] Client: {c['client_name']} ({c['client_email']}) | "
+                f"Commercial: {c['commercial_name']} | Montant total: {c['amount_total']} | "
+                f"Restant: {c['amount_remaining']} | Date création: {c['created_date']} | "
+                f"Signé: {'Oui' if c['signed'] else 'Non'}"
+            )
+            for c in contracts_data.values()
+        ]
+
         message = "\n".join(lines)
         click.echo(message)
 
@@ -164,10 +181,16 @@ def list_unsigned_contracts_cmd():
     try:
         contracts_data = list_unsigned_contracts()
 
-        lines = [f"[{c['id']}] Client: {c['client_name']} ({c['client_email']}) | Commercial: {c['commercial_name']} | "
-                 f"Montant total: {c['amount_total']} | Restant: {c['amount_remaining']} | "
-                 f"Date création: {c['created_date']} | Signé: {'Oui' if c['signed'] else 'Non'}"
-                 for c in contracts_data.values()]
+        lines = [
+            (
+                f"[{c['id']}] Client: {c['client_name']} ({c['client_email']}) | "
+                f"Commercial: {c['commercial_name']} | Montant total: {c['amount_total']} | "
+                f"Restant: {c['amount_remaining']} | Date création: {c['created_date']} | "
+                f"Signé: {'Oui' if c['signed'] else 'Non'}"
+            )
+            for c in contracts_data.values()
+        ]
+
         message = "\n".join(lines)
         click.echo(message)
 

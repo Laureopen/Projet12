@@ -63,9 +63,15 @@ def create_event_cmd(name, date_start, date_end, location, attendees, notes):
         # Affiche la liste des contrats signés
         contracts_data = list_signed_contracts()
 
-        lines = [f"{c['id']} | Client: {c['client_name']} ({c['client_email']}) | Commercial: {c['commercial_name']} | "
-                 f"Montant: {c['amount_total']} | Signé le: {c['signed_date']}"
-                 for c in contracts_data.values()]
+        lines = [
+            (
+                f"{c['id']} | Client: {c['client_name']} ({c['client_email']}) | "
+                f"Commercial: {c['commercial_name']} | Montant: {c['amount_total']} | "
+                f"Signé le: {c['signed_date']}"
+            )
+            for c in contracts_data.values()
+        ]
+
         message = "\n".join(lines)
         click.echo(message)
 
@@ -187,7 +193,9 @@ def update_my_event_cmd(date_start, date_end, location, attendees, notes):
                                       default=event_defaults["date_start"])
 
         if date_end is None:
-            date_end = click.prompt("Date de fin (YYYY-MM-DD HH:MM)", type=str, default=event_defaults["date_end"])
+            date_end = click.prompt(
+                "Date de fin (YYYY-MM-DD HH:MM)",
+                type=str, default=event_defaults["date_end"])
 
         if location is None:
             location = click.prompt("Lieu", type=str, default=event_defaults["location"])

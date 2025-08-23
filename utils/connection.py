@@ -4,7 +4,8 @@ from models.base import Base
 
 # Informations de connexion à la base de données
 db_user = "crm"  # Nom d'utilisateur pour la base de données
-db_password = os.getenv("EPIC_DB_PASSWORD")  # Mot de passe stocké en variable d'environnement pour plus de sécurité
+db_password = os.getenv("EPIC_DB_PASSWORD")
+# Mot de passe stocké en variable d'environnement pour plus de sécurité
 db_host = "localhost"  # Adresse du serveur de base de données
 db_port = "5432"  # Port utilisé par PostgreSQL par défaut
 db_name = "epic_crm"  # Nom de la base de données
