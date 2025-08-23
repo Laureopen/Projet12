@@ -19,6 +19,7 @@ def user_cli():
     - la création d'un utilisateur
     - la mise à jour d'un utilisateur existant
     - la suppression d'un utilisateur
+    - la liste des utilisateurs
     """
     pass
 
@@ -124,8 +125,26 @@ def delete_user_cmd():
     except Exception as e:
         click.echo(f"Erreur lors de la suppression : {e}")
 
+@click.command("list")
+def list_users_cmd():
+    """
+    Commande pour afficher tous les utilisateurs existants.
+    """
+    try:
+        users_data = list_users()
+
+        lines = [f"[{u['id']}] Nom: {u['name']} | Email: {u['email']} | "
+                 f"Département: {u['department_name']}"
+                 for u in users_data.values()]
+        message = "\n".join(lines)
+        click.echo(message)
+
+    except Exception as e:
+        click.echo(f"Erreur : {e}")
+
 
 # Enregistrement des commandes dans le groupe principal
 user_cli.add_command(create_user_cmd)
 user_cli.add_command(update_user_cmd)
 user_cli.add_command(delete_user_cmd)
+user_cli.add_command(list_users_cmd)
